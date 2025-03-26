@@ -1,0 +1,1 @@
+PetiteVue.createApp().mount();
