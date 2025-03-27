@@ -1,8 +1,11 @@
 {
-  "scripts": {
-     "wp-env": "wp-env"
-  },
-  "devDependencies": {
-    "@wordpress/env": "^10.20.0"
-  }
+	"scripts": {
+		"wp-env": "wp-env"
+	},
+	"devDependencies": {
+		"@wordpress/env": "^10.20.0"
+	},
+	"dependencies": {
+		"citation-js": "^0.7.18"
+	}
 }

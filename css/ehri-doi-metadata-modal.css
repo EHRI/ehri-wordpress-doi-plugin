@@ -1,0 +1,87 @@
+#doi-metadata-modal label {
+	display: block;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+
+#doi-metadata-modal {
+	padding: 15px;
+}
+
+#doi-metadata-modal input[type="text"],
+#doi-metadata-modal input[type="number"],
+#doi-metadata-modal textarea {
+	width: 100%;
+	padding: 8px;
+	margin-bottom: 15px;
+}
+
+#doi-metadata-modal textarea {
+	height: 100px;
+}
+
+#doi-metadata-modal .description {
+	display: block;
+	font-style: italic;
+	color: #666;
+	margin-top: -10px;
+	margin-bottom: 15px;
+}
+
+.button-row {
+	display: flex;
+	gap: .5rem;
+	margin-top: 15px;
+}
+
+/* Meta box styling */
+#doi-metadata-box input[type="text"] {
+	width: 100%;
+	margin-bottom: 10px;
+}
+
+#doi-metadata-box dl {
+	display: grid;
+	grid-template-columns: max-content auto;
+	gap: 1rem;
+}
+
+#doi-metadata-box dl dd {
+	margin-inline-start: 0;
+	font-weight: bold;
+}
+
+table.doi-metadata {
+	border-collapse: collapse;
+}
+
+.doi-metadata td {
+	vertical-align: top;
+}
+
+.doi-metadata td ul {
+	margin: 0;
+}
+
+.doi-metadata td {
+	padding: 0.5rem 0;
+	border-bottom: 1px solid #ddd;
+}
+
+.doi-metadata td:first-child {
+	font-weight: bold;
+	padding-right: 1rem;
+}
+
+.doi-metadata td:first-child .changed {
+}
+
+.doi-metadata td:last-child {
+	padding-left: 1rem;
+	font-style: italic;
+}
+
+.doi-metadata-section.changed td:nth-child(2) {
+	font-weight: bolder;
+	color: #0f6674;
+}

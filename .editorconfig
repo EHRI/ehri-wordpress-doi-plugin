@@ -1,0 +1,21 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.php]
+indent_style = tab
+indent_size = 4
+
+[*.{js,json,yml,css,scss}]
+indent_style = tab
+indent_size = 4
+
+[*.txt]
+end_of_line = crlf
+
+[*.{md,markdown}]
+trim_trailing_whitespace = false

@@ -1,0 +1,8 @@
+<phpunit>
+    <!-- Other config -->
+    <testsuites>
+        <testsuite name="My Tests">
+            <directory suffix="-test.php">./tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

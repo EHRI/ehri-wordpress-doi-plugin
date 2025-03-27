@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<ruleset name="WordPress Custom Standards">
+    <!-- Include the WordPress standards -->
+    <rule ref="WordPress">
+        <!-- Exclude specific variables from escaping requirements -->
+        <exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped">
+            <property name="customAllowedVars" type="array" value="before_widget,after_widget,before_title,after_title" />
+        </exclude>
+    </rule>
+</ruleset>

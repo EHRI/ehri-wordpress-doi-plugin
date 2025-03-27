@@ -1,0 +1,8 @@
+.doi-url-container a {
+	color: #0066cc;
+}
+
+.doi-url-container a:hover {
+	color: #004999;
+	text-decoration: underline;
+}
