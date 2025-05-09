@@ -37,6 +37,19 @@ class EHRI_DOI_Metadata_Admin {
 		// Register settings.
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 
+		// Enqueue admin CSS.
+		add_action(
+			'admin_enqueue_scripts',
+			function() {
+				wp_enqueue_style(
+					'ehri-doi-metadata-admin',
+					plugins_url( 'css/ehri-doi-admin.css', EHRI_DOI_PLUGIN_PATH ),
+					array(),
+					filemtime( plugin_dir_path( EHRI_DOI_PLUGIN_PATH ) . 'css/ehri-doi-admin.css' )
+				);
+			}
+		);
+
 		// Load options.
 		$this->options = get_option(
 			$this->option_prefix . '_options',
@@ -325,6 +338,15 @@ class EHRI_DOI_Metadata_Admin {
 				submit_button();
 				?>
 			</form>
+			<hr/>
+
+			<h2><?php esc_html_e( 'Currently registered DOIs', 'edmp' ); ?></h2>
+			<p><?php esc_html_e( 'The following DOIs are currently registered with the DataCite API.', 'edmp' ); ?></p
+			<div class="textarea-wrap">
+				<label style="display: none" for="doi-report"><?php esc_html_e( 'DOI Report', 'edmp' ); ?></label>
+				<textarea id="doi-report" rows="8" readonly><?php echo esc_html( $this->get_doi_report_data() ); ?>
+				</textarea>
+			</div>
 		</div>
 		<?php
 	}
@@ -359,5 +381,45 @@ class EHRI_DOI_Metadata_Admin {
 	 */
 	public function get_client_secret(): string {
 		return $this->options['client_secret'];
+	}
+
+	/**
+	 * Fetch CSV data for the currently registered DOIs and the post permalink.
+	 * This is mostly for debugging/dev purposes.
+	 */
+	public function get_doi_report_data(): string {
+		$args = array(
+			'post_type'      => 'any',
+			'posts_per_page' => -1,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+			'meta_query'     => array(
+				array(
+					'key'     => '_doi',
+					'compare' => 'EXISTS',
+				),
+			),
+		);
+
+		// Run the query.
+		$meta_query = new WP_Query( $args );
+
+		$out = '';
+		// Check if posts were found.
+		if ( $meta_query->have_posts() ) {
+			while ( $meta_query->have_posts() ) {
+				$meta_query->the_post();
+				$doi       = get_post_meta( get_the_ID(), '_doi', true );
+				$permalink = get_permalink( get_the_ID() );
+				$out      .= sprintf(
+					'%s,%s' . PHP_EOL,
+					esc_html( $doi ),
+					esc_html( $permalink )
+				);
+			}
+
+			// Restore original post data.
+			wp_reset_postdata();
+		}
+		return $out;
 	}
 }
