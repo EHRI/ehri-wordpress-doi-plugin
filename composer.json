@@ -17,6 +17,6 @@
 	},
 	"scripts": {
 		"test": "phpunit --config=phpunit.xml",
-		"phpcs": "phpcs --standard=phpcs.xml"
+		"phpcs": "phpcs --standard=phpcs.xml -v"
 	}
 }

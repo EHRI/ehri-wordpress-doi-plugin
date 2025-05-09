@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      uses: php-actions/composer@v6
+
+    - name: PHP Unit tests
+      uses: php-actions/phpunit@v3
+      with:
+        version: '9.6'
+        configuration: phpunit.xml
+
+    - name: PHP Code Sniffer
+      run: composer run phpcs
