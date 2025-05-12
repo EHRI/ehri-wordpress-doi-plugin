@@ -81,7 +81,13 @@ class EHRI_DOI_Metadata_Manager {
 		add_action( 'admin_enqueue_scripts', array( $this, 'register_assets' ) );
 
 		// Add settings link to plugin page.
-		add_filter( 'plugin_action_links_ehri-wordpress-doi-plugin/ehri-doi-metadata-plugin.php', array( $this, 'add_settings_link' ) );
+		add_filter(
+			'plugin_action_links_ehri-wordpress-doi-plugin/ehri-doi-metadata-plugin.php',
+			array(
+				$this,
+				'add_settings_link',
+			)
+		);
 
 		// Register AJAX handlers.
 		$this->register_ajax_handlers();
@@ -105,8 +111,8 @@ class EHRI_DOI_Metadata_Manager {
 	public function add_settings_link( array $links ): array {
 		// Build and escape the URL.
 		$settings_link = '<a href="' .
-							admin_url( 'admin.php?page=ehri-doi-metadata-settings' ) . '">' .
-							__( 'Settings', 'edmp' ) . '</a>';
+						admin_url( 'admin.php?page=ehri-doi-metadata-settings' ) . '">' .
+						__( 'Settings', 'edmp' ) . '</a>';
 
 		// Add the link to the beginning of the array.
 		array_unshift( $links, $settings_link );
@@ -164,6 +170,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * Render the DOI metadata meta box.
 	 *
 	 * @param WP_Post $post The post object.
+	 *
 	 * @return void
 	 */
 	public function render_meta_box( WP_Post $post ) {
@@ -181,6 +188,7 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param string|null $doi The DOI.
 	 * @param string|null $state The DOI state.
+	 *
 	 * @return false|string
 	 */
 	private static function get_meta_box_html( string $doi = null, string $state = null ) {
@@ -212,6 +220,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * Save the DOI metadata for the post.
 	 *
 	 * @param int $post_id The post ID.
+	 *
 	 * @return void
 	 */
 	public function save_meta( int $post_id ) {
@@ -232,6 +241,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * Register assets for the plugin.
 	 *
 	 * @param string $hook The current admin page hook.
+	 *
 	 * @return void
 	 */
 	public function register_assets( string $hook ) {
@@ -308,6 +318,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * Update the DOI state.
 	 *
 	 * @param string $event The event to trigger.
+	 *
 	 * @return void
 	 */
 	public function ajax_update_doi_state( string $event ): void {
@@ -343,10 +354,7 @@ class EHRI_DOI_Metadata_Manager {
 				$this->save_doi_post_metadata( $post_id, $doi, $state );
 
 				// Calculate changes.
-				$changed = $doi ? EHRI_DOI_Metadata_Helpers::changed_fields(
-					$attrs,
-					$this->initialize_doi_metadata( $post_id, false )
-				) : array();
+				$changed = EHRI_DOI_Metadata_Helpers::changed_fields( $attrs, $this->initialize_doi_metadata( $post_id ) );
 
 				wp_send_json_success(
 					array(
@@ -368,6 +376,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * plugin settings.
 	 *
 	 * @param int $post_id the post ID.
+	 *
 	 * @return void|array
 	 */
 	private function initialize_doi_metadata( int $post_id ): array {
@@ -403,6 +412,7 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param int    $post_id The post ID.
 	 * @param string $doi The DOI to fetch.
+	 *
 	 * @return void
 	 */
 	private function fetch_doi_metadata( int $post_id, string $doi ): void {
@@ -412,6 +422,7 @@ class EHRI_DOI_Metadata_Manager {
 
 			// Calculate changes.
 			$attrs     = $response_data['data']['attributes'];
+			$tombstone = $response_data['meta'] ?? ( $response_data['meta']['tombstone'] ?? false );
 			$state     = $attrs['state'] ?? 'draft';
 			$init_data = $this->initialize_doi_metadata( $post_id );
 			$changed   = $doi ? EHRI_DOI_Metadata_Helpers::changed_fields( $attrs, $init_data ) : array();
@@ -420,7 +431,7 @@ class EHRI_DOI_Metadata_Manager {
 			wp_send_json_success(
 				array(
 					'data'       => $attrs,
-					'modal_html' => $this->get_modal_html( $post_id, $init_data, $doi, $state, $changed ),
+					'modal_html' => $this->get_modal_html( $post_id, $init_data, $doi, $state, $changed, $tombstone ),
 				)
 			);
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
@@ -472,6 +483,7 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param int    $post_id The post ID.
 	 * @param string $doi The DOI to delete.
+	 *
 	 * @return void
 	 */
 	private function delete_doi( int $post_id, string $doi ) {
@@ -499,6 +511,7 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param int    $post_id The post ID.
 	 * @param string $doi The DOI.
+	 *
 	 * @return void
 	 */
 	private function update_doi_metadata( int $post_id, string $doi ): void {
@@ -540,6 +553,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * Register a new DOI for the post.
 	 *
 	 * @param int $post_id The post ID.
+	 *
 	 * @return void
 	 */
 	private function create_doi( int $post_id ): void {
@@ -596,10 +610,12 @@ class EHRI_DOI_Metadata_Manager {
 	 * @param string|null $doi the DOI, if available.
 	 * @param string      $state the state of the DOI (draft, registered, findable).
 	 * @param array       $changed an array of fields which differ on the DOI metadata
-	 *                         and the post metadata.
+	 *                               and the post metadata.
+	 * @param array|false $tombstone whether the DOI is a tombstone.
+	 *
 	 * @return string the HTML for the modal.
 	 */
-	private function get_modal_html( int $post_id, array $data, string $doi = null, string $state = 'draft', array $changed = array() ): string {
+	private function get_modal_html( int $post_id, array $data, string $doi = null, string $state = 'draft', array $changed = array(), $tombstone = false ): string {
 		$renderer = new EHRI_DOI_Metadata_Renderer( $data, $doi, $state, $changed );
 		ob_start();
 		?>
@@ -608,6 +624,12 @@ class EHRI_DOI_Metadata_Manager {
 				<input type="hidden" name="post_id" value="<?php echo esc_attr( $post_id ); ?>"/>
 				<input type="hidden" name="doi" value="<?php echo esc_attr( $doi ); ?>"/>
 				<input type="hidden" name="doi_state" value="<?php echo esc_attr( $state ); ?>"/>
+
+				<?php if ( $tombstone ) : ?>
+					<p class="doi-tombstone-warning">
+						<strong><?php esc_html_e( 'Item marked as deleted', 'edmp' ); ?></strong>
+					</p>
+				<?php endif; ?>
 
 				<?php echo $renderer->render_doi_metadata(); ?>
 
@@ -653,6 +675,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * @param int    $post_id the post ID.
 	 * @param string $doi the DOI.
 	 * @param string $state the state of the DOI (draft, registered, findable).
+	 *
 	 * @return void
 	 */
 	private function save_doi_post_metadata( int $post_id, string $doi, string $state = 'draft' ): void {
