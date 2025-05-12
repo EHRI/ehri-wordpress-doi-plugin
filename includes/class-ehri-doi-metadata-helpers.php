@@ -44,6 +44,24 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Fetch the language code for the post. If using Polylang, this
+	 * will be the Polylang language code. If not, this will be the
+	 * WordPress language code.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return string the language code.
+	 */
+	public function get_language_code( int $post_id ): string {
+		if ( function_exists( 'pll_get_post_language' ) ) {
+			$lang = pll_get_post_language( $post_id );
+			if ( $lang ) {
+				return $lang;
+			}
+		}
+		return substr( get_locale(), 0, 2 );
+	}
+
+	/**
 	 * Fetch translations for the post in all the languages for which
 	 * it is available (via Polylang, if installed).
 	 *

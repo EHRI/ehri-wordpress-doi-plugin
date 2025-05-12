@@ -74,9 +74,11 @@ class EHRI_DOI_Repository {
 			)
 		);
 
-		// Ensure we get a 200 response.
+		// We're normally expecting a 200 response, but we might get 410 if the
+		// item exists but has been removed. In that case we *should* still receive
+		// a valid response body.
 		$code = wp_remote_retrieve_response_code( $api_response );
-		if ( is_wp_error( $api_response ) || 200 !== $code ) {
+		if ( is_wp_error( $api_response ) || ( 200 !== $code && 410 !== $code ) ) {
 			if ( 'http_request_failed' === $api_response->get_error_code() ) {
 				throw new EHRI_DOI_Repository_Exception(
 					sprintf( 'Unable to fetch DOI metadata: %s. Please check the URL is correct.', $api_response->get_error_message() ),

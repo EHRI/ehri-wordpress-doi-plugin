@@ -384,6 +384,7 @@ class EHRI_DOI_Metadata_Manager {
 				'resourceType'        => 'Blog Post',
 				'resourceTypeGeneral' => 'Text',
 			),
+			'language'             => $this->helpers->get_language_code( $post_id ),
 			'relatedIdentifiers'   => $this->helpers->get_translations( $post_id ),
 		);
 

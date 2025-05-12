@@ -69,6 +69,7 @@ class EHRI_DOI_Metadata_Renderer {
 		$html .= $this->render_creators();
 		$html .= $this->render_publishers();
 		$html .= $this->render_publication_year();
+		$html .= $this->render_language();
 		$html .= $this->render_resource_type();
 		$html .= $this->render_alternate_identifiers();
 		$html .= $this->render_descriptions();
@@ -266,6 +267,21 @@ class EHRI_DOI_Metadata_Renderer {
 			esc_html__( 'Publication Year', 'edmp' ),
 			$year,
 			esc_html__( 'The year the post was published according to the WordPress dates.', 'edmp' )
+		);
+	}
+
+	/**
+	 * Renders the language code of the post.
+	 *
+	 * @return string HTML string of the rendered language code.
+	 */
+	private function render_language(): string {
+		$year = $this->metadata['language'] ?? '';
+		return $this->render_section(
+			'language',
+			esc_html__( 'Language', 'edmp' ),
+			$year,
+			esc_html__( 'The language code of this post.', 'edmp' )
 		);
 	}
 
