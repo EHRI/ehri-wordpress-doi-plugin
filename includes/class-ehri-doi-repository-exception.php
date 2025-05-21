@@ -29,7 +29,7 @@ class EHRI_DOI_Repository_Exception extends Exception {
 	 * @param Throwable|null $previous the previous exception.
 	 * @param string|null    $doi the DOI associated with the exception.
 	 */
-	public function __construct( string $string, $code = 0, Throwable $previous = null, string $doi = null ) {
+	public function __construct( string $string, $code = 0, ?Throwable $previous = null, $doi = null ) {
 		$this->doi = $doi;
 		parent::__construct( $string, (int) $code, $previous );
 	}

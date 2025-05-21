@@ -246,7 +246,8 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered publisher.
 	 */
 	private function render_publishers(): string {
-		$publisher = $this->metadata['publisher'] ?? '';
+		$publisher_obj = $this->metadata['publisher']['name'] ?? '';
+		$publisher     = empty( $publisher_obj ) ? ( $this->metadata['publisher'] ?? '' ) : '';
 		return $this->render_section(
 			'publisher',
 			esc_html__( 'Publisher' ),

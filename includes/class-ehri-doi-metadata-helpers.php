@@ -245,6 +245,20 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Reformat a date string.
+	 *
+	 * @param string $iso_date A date string in ISO 8601 format.
+	 * @param string $format  The format to use for the output date string.
+	 *
+	 * @return string The formatted date string.
+	 * @throws DateMalformedStringException If the date string is malformed.
+	 */
+	public static function format_iso_date( string $iso_date, string $format = 'F j, Y' ): string {
+		$date_time = new DateTime( $iso_date );
+		return $date_time->format( $format );
+	}
+
+	/**
 	 * Clean the text by removing HTML tags and decoding HTML entities.
 	 *
 	 * @param string $text the text to clean.

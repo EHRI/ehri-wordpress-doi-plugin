@@ -130,7 +130,7 @@ class EHRI_DOI_Repository {
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 201 !== $code ) {
 			$error = wp_remote_retrieve_body( $api_response );
-			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error creating DOI: %s', $error ), $code, null, null );
+			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error creating DOI: %s', $error ), $code, null, '' );
 		}
 		$response_body = wp_remote_retrieve_body( $api_response );
 

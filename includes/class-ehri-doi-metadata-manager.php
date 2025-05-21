@@ -422,7 +422,7 @@ class EHRI_DOI_Metadata_Manager {
 
 			// Calculate changes.
 			$attrs     = $response_data['data']['attributes'];
-			$tombstone = $response_data['meta'] ?? ( $response_data['meta']['tombstone'] ?? false );
+			$tombstone = $response_data['meta']['tombstone'] ?? false;
 			$state     = $attrs['state'] ?? 'draft';
 			$init_data = $this->initialize_doi_metadata( $post_id );
 			$changed   = $doi ? EHRI_DOI_Metadata_Helpers::changed_fields( $attrs, $init_data ) : array();
@@ -435,7 +435,7 @@ class EHRI_DOI_Metadata_Manager {
 				)
 			);
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
-			wp_send_json_error( $e->getMessage() );
+			wp_send_json_error( $e->getMessage() . ' ' . $e->getCode() );
 		}
 	}
 
@@ -597,7 +597,7 @@ class EHRI_DOI_Metadata_Manager {
 				)
 			);
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
-			wp_send_json_error( $e->getMessage() );
+			wp_send_json_error( $e->getMessage() . ' ' . $e->getCode() );
 		}
 	}
 
@@ -628,6 +628,8 @@ class EHRI_DOI_Metadata_Manager {
 				<?php if ( $tombstone ) : ?>
 					<p class="doi-tombstone-warning">
 						<strong><?php esc_html_e( 'Item marked as deleted', 'edmp' ); ?></strong>
+						<?php esc_html_e( 'since ', 'edmp' ); ?>
+						<?php echo esc_html( EHRI_DOI_Metadata_Helpers::format_iso_date( $tombstone['deletedAt'] ) ); ?>
 					</p>
 				<?php endif; ?>
 

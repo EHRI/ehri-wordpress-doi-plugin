@@ -148,7 +148,7 @@
 								// Update the meta box.
 								$( '#doi-metadata-info' ).replaceWith( $( response.data.panel_html ) );
 							} else {
-								alert( 'Error: failed here ' + response.data );
+								alert( response.data );
 							}
 						},
 						error: function () {

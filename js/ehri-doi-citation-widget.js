@@ -171,30 +171,62 @@ jQuery( document ).ready(
 			}
 		}
 
-		// Initialize Citation.js with the DOI.
-		Cite.async( postDOI ).then(
-			function( cite) {
-				$loading.hide();
-				$formats.show();
-				// Initial citation update.
-				updateCitationText( cite );
-				// Update citation when format changes.
-				$formatSelector.on( 'change', () => updateCitationText( cite ) );
-				// Copy citation.
-				$copyButton.on(
-					'click',
-					function () {
-						const text = $citationText.text();
-						copyToClipboard( text );
+		function interceptXHRUrl(originalUrl, replacementUrl, once = false) {
+			const originalOpen = XMLHttpRequest.prototype.open;
+			let intercepted    = false;
+
+			XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+				if ( ! intercepted && typeof url === 'string' && url.includes( originalUrl )) {
+					console.log( `Intercepted XHR to ${url}` );
+					const newUrl = url.replace( originalUrl, replacementUrl );
+					console.log( `Redirecting to ${newUrl}` );
+
+					if (once) {
+						intercepted = true;
+						setTimeout( restoreOriginal, 0 );
 					}
-				);
+
+					return originalOpen.call( this, method, newUrl, async, user, password );
+				}
+
+				return originalOpen.apply( this, arguments );
+			};
+
+			function restoreOriginal() {
+				XMLHttpRequest.prototype.open = originalOpen;
+				console.log( 'Restored original XHR behavior' );
+				return true;
 			}
-		).catch(
-			function(e) {
-				console.error( 'Error initializing Citation.js:', e );
-				$loading.hide();
-				$errorEl.show();
-			}
-		);
+
+			return restoreOriginal;
+		}
+
+		// Initialize Citation.js with the DOI.
+		try {
+			// We're going to hack XHR to swap out https://doi.org/
+			// for the DataCite API URL...
+
+			interceptXHRUrl( 'https://doi.org/', 'https://api.test.datacite.org/dois/', true );
+			let cite = new Cite( postDOI );
+
+			$loading.hide();
+			$formats.show();
+			// Initial citation update.
+			updateCitationText( cite );
+			// Update citation when format changes.
+			$formatSelector.on( 'change', () => updateCitationText( cite ) );
+			// Copy citation.
+			$copyButton.on(
+				'click',
+				function () {
+					const text = $citationText.text();
+					copyToClipboard( text );
+				}
+			);
+		} catch ( e ) {
+			console.error( 'Error initializing Citation.js:', e );
+			$loading.hide();
+			$errorEl.show();
+		}
 	}
 );
