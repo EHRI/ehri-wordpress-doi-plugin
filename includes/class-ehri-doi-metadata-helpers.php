@@ -34,8 +34,14 @@ class EHRI_DOI_Metadata_Helpers {
 	 * @return array
 	 */
 	public function get_description_info( int $post_id ): array {
+
+		$desc_text = sanitize_text_field( get_post_meta( $post_id, 'doi_description', true ) );
+		if ( ! $desc_text ) {
+			$desc_text = $this->clean_text( get_the_excerpt( $post_id ) );
+		}
+
 		$desc = array(
-			'description' => $this->clean_text( get_the_excerpt( $post_id ) ),
+			'description' => $desc_text,
 		);
 		if ( function_exists( 'pll_get_post_language' ) ) {
 			$desc['lang'] = pll_get_post_language( $post_id );
