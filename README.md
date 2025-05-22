@@ -1,4 +1,4 @@
-
+[![Build Status](https://github.com/EHRI/ehri-wordpress-doi-plugin/workflows/CI/badge.svg)](https://github.com/EHRI/ehri-wordpress-doi-plugin/actions?query=workflow%3ACI)
 
 EHRI DOI Wordpress Plugin
 =========================
