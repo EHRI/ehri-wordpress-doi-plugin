@@ -394,7 +394,8 @@ class EHRI_DOI_Metadata_Manager {
 				'resourceTypeGeneral' => 'Text',
 			),
 			'language'             => $this->helpers->get_language_code( $post_id ),
-			'relatedIdentifiers'   => $this->helpers->get_translations( $post_id ),
+			'relatedIdentifiers'   => $this->helpers->get_related_identifiers( $post_id ),
+			'version'              => $this->helpers->get_version_info( $post_id ),
 		);
 
 		// If we have a DOI for this post already, add the URL to the data based

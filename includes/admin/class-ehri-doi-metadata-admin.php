@@ -4,7 +4,7 @@
  *
  * Adds an admin settings page to configure the DOI Metadata plugin
  *
- * @package ehri-doi-metadata
+ * @package ehri-pid-tools
  */
 
 /**

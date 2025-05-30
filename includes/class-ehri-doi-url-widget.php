@@ -4,7 +4,7 @@
  * Description: Displays a DOI URL
  * Version: 1.0
  *
- * @package ehri-doi-url-widget
+ * @package ehri-pid-tools
  */
 
 if ( ! function_exists( 'register_doi_url_widget' ) ) {

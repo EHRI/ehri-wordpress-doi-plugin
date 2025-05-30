@@ -77,6 +77,7 @@ class EHRI_DOI_Metadata_Renderer {
 		$html .= $this->render_references();
 		$html .= $this->render_related();
 		$html .= $this->render_url();
+		$html .= $this->render_version();
 		$html .= '</table>';
 
 		return $html;
@@ -268,6 +269,21 @@ class EHRI_DOI_Metadata_Renderer {
 			esc_html__( 'Publication Year', 'edmp' ),
 			$year,
 			esc_html__( 'The year the post was published according to the WordPress dates.', 'edmp' )
+		);
+	}
+
+	/**
+	 * Renders the language code of the post.
+	 *
+	 * @return string HTML string of the rendered language code.
+	 */
+	private function render_version(): string {
+		$year = $this->metadata['version'] ?? '';
+		return $this->render_section(
+			'version',
+			esc_html__( 'Version', 'edmp' ),
+			$year,
+			esc_html__( 'The version of the post, according to its metadata.', 'edmp' )
 		);
 	}
 
@@ -490,8 +506,8 @@ class EHRI_DOI_Metadata_Renderer {
 			function ( $item ) {
 				$item_type     = htmlspecialchars( $item['relatedIdentifierType'] ?? '' );
 				$item_ident    = htmlspecialchars( $item['relatedIdentifier'] ?? '' );
-				$relation_type = ! empty( $item['relationType'] ) ? ' [' . htmlspecialchars( $item['relationType'] ) . ']' : '';
-				return "$item_type: $item_ident$relation_type";
+				$relation_type = ! empty( $item['relationType'] ) ? '<strong>[' . htmlspecialchars( $item['relationType'] ) . ']</strong> ' : '';
+				return "$relation_type $item_type: $item_ident";
 			},
 			$this->metadata['relatedIdentifiers']
 		);

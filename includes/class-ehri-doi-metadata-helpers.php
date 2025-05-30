@@ -68,13 +68,33 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Get the version of this post. This is derived from
+	 * other posts which have the metadata key '_previous_version_of'
+	 * this post.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return int the version number.
+	 */
+	public function get_version_info( int $post_id ): int {
+		$version = 1;
+		// Check if the post has a previous version.
+		$this_post = $post_id;
+		// phpcs:ignore WordPress.CodeAnalysis.AssignmentInCondition
+		while ( $previous = $this->get_previous_version( $this_post ) ) {
+			$version++;
+			$this_post = $previous;
+		}
+		return $version;
+	}
+
+	/**
 	 * Fetch translations for the post in all the languages for which
 	 * it is available (via Polylang, if installed).
 	 *
 	 * @param int $post_id the post ID.
 	 * @return array
 	 */
-	public function get_translations( int $post_id ): array {
+	public function get_related_translations( int $post_id ): array {
 		// Fetch translations for the post, and return them as relatedItems.
 		// Only translations which already have an existing published DOI
 		// assigned will be included, and there needs to be reciprocal
@@ -94,6 +114,57 @@ class EHRI_DOI_Metadata_Helpers {
 			}
 		}
 		return $translations;
+	}
+
+	/**
+	 * Fetch previous/new versions of the post. This is based
+	 * NOT on post revisions, but on the post's metadata key
+	 * '_previous_version_of' and '_new_version_of'.
+	 *
+	 * @param int $post_id the post ID.
+	 */
+	public function get_related_versions( int $post_id ): array {
+		// Query posts which have the metadata key '_doi_previous_version_of' or '_doi_new_version_of'.
+		$versions         = array();
+		$previous_version = get_post_meta( $post_id, '_previous_version_of', true );
+		if ( $previous_version ) {
+			$previous_doi = get_post_meta( $previous_version, '_doi', true );
+			if ( $previous_doi ) {
+				$versions[] = array(
+					'relatedIdentifier'     => $previous_doi,
+					'relatedIdentifierType' => 'DOI',
+					'relationType'          => 'IsPreviousVersionOf',
+					'resourceTypeGeneral'   => 'Text',
+				);
+			}
+		}
+		// Run a meta query for posts where the _previous_version_of key is set to the current post ID.
+		$previous_version = $this->get_previous_version( $post_id );
+		if ( $previous_version ) {
+			$previous_doi = get_post_meta( $previous_version, '_doi', true );
+			if ( $previous_doi ) {
+				$versions[] = array(
+					'relatedIdentifier'     => $previous_doi,
+					'relatedIdentifierType' => 'DOI',
+					'relationType'          => 'IsNewVersionOf',
+					'resourceTypeGeneral'   => 'Text',
+				);
+			}
+		}
+		return $versions;
+	}
+
+	/**
+	 * Fetch related identifiers for the post.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return array
+	 */
+	public function get_related_identifiers( int $post_id ): array {
+		return array_merge(
+			$this->get_related_translations( $post_id ),
+			$this->get_related_versions( $post_id ),
+		);
 	}
 
 	/**
@@ -273,5 +344,42 @@ class EHRI_DOI_Metadata_Helpers {
 	private function clean_text( string $text ): string {
 		$filtered = wp_filter_nohtml_kses( $text );
 		return html_entity_decode( $filtered, ENT_QUOTES, 'UTF-8' );
+	}
+
+	/**
+	 * Find if another post exists with a _previous_version_of meta key
+	 * pointing to this one.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return int|false the ID of the post if found, false otherwise.
+	 */
+	private function get_previous_version( int $post_id ) {
+		// Run a meta query for posts where the _previous_version_of key is set to the current post ID.
+		$found = false;
+		$args  = array(
+			'post_type'      => 'post',
+			'posts_per_page' => -1,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+			'meta_query'     => array(
+				array(
+					'key'   => '_previous_version_of',
+					'value' => $post_id,
+				),
+			),
+		);
+
+		$versions_query = new WP_Query( $args );
+		if ( $versions_query->have_posts() ) {
+			while ( $versions_query->have_posts() ) {
+				$versions_query->the_post();
+				$this_id = get_the_ID();
+				if ( $this_id === $post_id ) {
+					continue; // Skip the current post.
+				}
+				$found = $this_id;
+			}
+			wp_reset_postdata();
+		}
+		return $found;
 	}
 }
