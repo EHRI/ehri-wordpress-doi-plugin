@@ -74,7 +74,6 @@ class EHRI_DOI_Metadata_Renderer {
 		$html .= $this->render_alternate_identifiers();
 		$html .= $this->render_descriptions();
 		$html .= $this->render_subjects();
-		$html .= $this->render_references();
 		$html .= $this->render_related();
 		$html .= $this->render_url();
 		$html .= $this->render_version();
@@ -126,7 +125,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered titles.
 	 */
 	private function render_titles(): string {
-		if ( empty( $this->metadata['titles'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'titles' ) ) {
 			return '';
 		}
 
@@ -164,7 +163,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered creators.
 	 */
 	private function render_creators(): string {
-		if ( empty( $this->metadata['creators'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'creators' ) ) {
 			return '';
 		}
 
@@ -204,7 +203,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered name identifiers.
 	 */
 	private function render_name_identifiers( array $creator ): string {
-		if ( empty( $creator['nameIdentifiers'] ) ) {
+		if ( empty( $creator['nameIdentifiers'] ) && ! in_array( 'nameIdentifiers', $this->changed, true ) ) {
 			return '';
 		}
 
@@ -308,7 +307,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered resource type.
 	 */
 	private function render_resource_type(): string {
-		if ( empty( $this->metadata['types'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'types' ) ) {
 			return '';
 		}
 
@@ -336,9 +335,10 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered alternate identifiers.
 	 */
 	private function render_alternate_identifiers(): string {
-		if ( empty( $this->metadata['alternateIdentifiers'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'alternateIdentifiers' ) ) {
 			return '';
 		}
+
 		$identifiers = array_map(
 			function ( $identifier ) {
 				$scheme = htmlspecialchars( $identifier['alternateIdentifierType'] ?? '' );
@@ -374,7 +374,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered descriptions.
 	 */
 	private function render_descriptions(): string {
-		if ( empty( $this->metadata['descriptions'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'descriptions' ) ) {
 			return '';
 		}
 
@@ -415,7 +415,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered subjects.
 	 */
 	private function render_subjects(): string {
-		if ( empty( $this->metadata['subjects'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'subjects' ) ) {
 			return '';
 		}
 
@@ -450,55 +450,12 @@ class EHRI_DOI_Metadata_Renderer {
 	}
 
 	/**
-	 * Renders the funding references of the post.
-	 *
-	 * @return string HTML string of the rendered funding references.
-	 */
-	private function render_references(): string {
-		if ( empty( $this->metadata['fundingReferences'] ) ) {
-			return '';
-		}
-
-		$funding_awards = array_map(
-			function ( $funding ) {
-				$funder_name  = htmlspecialchars( $funding['funderName'] ?? '' );
-				$award_title  = ! empty( $funding['awardTitle'] ) ?
-				' - Award: ' . htmlspecialchars( $funding['awardTitle'] ) : '';
-				$award_number = ! empty( $funding['awardNumber'] ) ?
-				' (Number: ' . htmlspecialchars( $funding['awardNumber'] ) . ')' : '';
-
-				return $funder_name . $award_title . $award_number;
-			},
-			$this->metadata['fundingReferences']
-		);
-
-		$content = '<ul>' .
-			implode(
-				'',
-				array_map(
-					function ( $f ) {
-						return "<li>$f</li>";
-					},
-					$funding_awards
-				)
-			) .
-			'</ul>';
-
-		return $this->render_section(
-			'fundingReferences',
-			esc_html__( 'Funding Reference(s)', 'edmp' ),
-			$content,
-			esc_html__( 'The funding reference(s) of the post, if any.', 'edmp' )
-		);
-	}
-
-	/**
 	 * Renders the related identifiers of the post.
 	 *
 	 * @return string HTML string of the rendered related identifiers.
 	 */
 	private function render_related(): string {
-		if ( empty( $this->metadata['relatedIdentifiers'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'relatedIdentifiers' ) ) {
 			return '';
 		}
 
@@ -523,6 +480,9 @@ class EHRI_DOI_Metadata_Renderer {
 				)
 			) .
 			'</ul>';
+		if ( empty( $related_identifiers ) ) {
+			$content = '&lt;empty&gt;';
+		}
 
 		return $this->render_section(
 			'relatedIdentifiers',
@@ -538,7 +498,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered URL.
 	 */
 	private function render_url(): string {
-		if ( empty( $this->metadata['url'] ) ) {
+		if ( $this->skip_field( $this->metadata, 'url' ) ) {
 			return '';
 		}
 		$url = htmlspecialchars( $this->metadata['url'] );
@@ -548,5 +508,22 @@ class EHRI_DOI_Metadata_Renderer {
 			sprintf( '<a href="%s" target="_blank">%s</a>', $url, $url ),
 			esc_html__( 'The permanent URL of the post.', 'edmp' )
 		);
+	}
+
+	/**
+	 * Determine if we should skip rendering a field.
+	 *
+	 * @param array  $data The metadata array.
+	 * @param string $key The key of the metadata field.
+	 *
+	 * @return bool True if the field should be skipped, false otherwise.
+	 */
+	private function skip_field( array $data, string $key ): bool {
+		// Skip if the field is empty and not in the changed array.
+		if ( empty( $data[ $key ] ) && ! in_array( $key, $this->changed, true ) ) {
+			return true;
+		}
+
+		return false;
 	}
 }

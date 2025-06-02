@@ -9,6 +9,7 @@ It contains a few separate components:
  - A WordPress plugin that provides an admin UI for creating and managing DOIs from the post editor
  - A widget that displays the DOI for a post
  - A widget that allows users to more easily cite posts in multiple formats (using [citation-js](https://citation.js.org))
+ - A tool for marking posts as replaced or superseded by another post and updating the DOI accordingly
 
 Because EHRI has specific requirements regarding landing pages for DOIs, this plugin is
 not intended for general use. It is designed to be used with the EHRI PID tools service,

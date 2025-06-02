@@ -16,17 +16,22 @@ define( 'EHRI_DOI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EHRI_DOI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EHRI_DOI_PLUGIN_PATH', __FILE__ );
 
-// Include the plugin class.
+// Include the metadata plugin class.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-metadata-manager.php';
 
+// Include the version manager class.
+require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-version-manager.php';
+
+
 /**
- * Activate the EHRI DOI Metadata Plugin.
- *
- * @return void
+ * Activate the EHRI DOI Metadata & Version Plugins.
  */
-function ehri_doi_metadata_plugin_activate() {
+function ehri_doi_activate_plugins() {
 	$doi_metadata_manager = new EHRI_DOI_Metadata_Manager();
 	$doi_metadata_manager->activate();
+
+	$doi_version_manager = new EHRI_DOI_Version_Manager();
+	$doi_version_manager->activate();
 }
 
-ehri_doi_metadata_plugin_activate();
+ehri_doi_activate_plugins();
