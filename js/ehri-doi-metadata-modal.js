@@ -20,7 +20,7 @@
 						width: 800,
 						modal: true,
 						buttons: {
-							Close: function () {
+							[doiMetadata.strings.close]: function () {
 								$( this ).dialog( 'close' );
 							}
 						},
@@ -105,11 +105,11 @@
 									initDialog();
 
 								} else {
-									alert( 'Error: ' + response.data );
+									alert( doiMetadata.strings.error + response.data );
 								}
 							},
 							error: function (e) {
-								alert( 'An error occurred while trying to open the DOI metadata editor.' );
+								alert( doiMetadata.strings.errorOpeningModal );
 								console.error( e );
 							}
 						}
@@ -152,7 +152,7 @@
 							}
 						},
 						error: function () {
-							alert( 'An error occurred while saving the DOI metadata.' );
+							alert( doiMetadata.strings.errorSavingMetadata );
 						}
 					}
 				);
@@ -192,7 +192,7 @@
 							}
 						},
 						error: function () {
-							alert( 'An error occurred while saving the DOI metadata.' );
+							alert( doiMetadata.strings.errorSavingMetadata );
 						}
 					}
 				);
@@ -207,7 +207,7 @@
 					}
 				);
 
-				if (confirm( 'Are you sure you want to delete this draft DOI?' )) {
+				if (confirm( doiMetadata.strings.confirmDeleteDoi )) {
 					$.ajax(
 						{
 							url: doiMetadata.ajaxUrl,
@@ -225,11 +225,11 @@
 									// Update the meta box.
 									$( '#doi-metadata-info' ).replaceWith( $( response.data.panel_html ) );
 								} else {
-									alert( 'Error: ' + response.data );
+									alert( doiMetadata.strings.error + response.data );
 								}
 							},
 							error: function () {
-								alert( 'An error occurred while deleting the DOI metadata.' );
+								alert( doiMetadata.strings.errorDeletingDoi );
 							}
 						}
 					);
@@ -268,7 +268,7 @@
 						},
 						error: function (response) {
 							console.log( response.data );
-							alert( 'An error occurred while hiding the DOI. ' );
+							alert( doiMetadata.strings.errorUpdatingState );
 						}
 					}
 				);

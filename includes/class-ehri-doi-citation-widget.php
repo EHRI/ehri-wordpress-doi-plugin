@@ -47,7 +47,7 @@ class EHRI_DOI_Citation_Widget extends WP_Widget {
 
 		parent::__construct(
 			'EHRI_DOI_Citation_Widget',
-			'Citation Widget [EHRI]',
+			__( 'Citation Widget [EHRI]', 'edmp' ),
 			array( 'description' => __( 'Displays citation options for posts with DOIs' ) )
 		);
 	}

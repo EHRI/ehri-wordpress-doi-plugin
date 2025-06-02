@@ -54,8 +54,8 @@ class EHRI_DOI_Url_Widget extends WP_Widget {
 
 		parent::__construct(
 			'EHRI_DOI_Url_Widget',
-			'DOI URL Widget [EHRI]',
-			array( 'description' => "Displays a DOI URL if '_doi' and '_doi_state' metadata is available" )
+			__( 'DOI URL Widget [EHRI]', 'edmp' ),
+			array( 'description' => __( "Displays a DOI URL if '_doi' and '_doi_state' metadata is available", 'edmp' ) )
 		);
 	}
 

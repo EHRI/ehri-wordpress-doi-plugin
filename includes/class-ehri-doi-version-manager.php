@@ -64,7 +64,7 @@ class EHRI_DOI_Version_Manager {
 	public function add_doi_version_meta_box() {
 		add_meta_box(
 			'doi-version-box',
-			'DOI Versioning',
+			__( 'DOI Versioning', 'edmp' ),
 			array( $this, 'render_meta_box' ),
 			'post',
 			'side',
@@ -144,6 +144,11 @@ class EHRI_DOI_Version_Manager {
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'doi_version_nonce' ),
+				'strings' => array(
+					'errorOpeningModal' => __( 'An error occurred while trying to open the version modal.', 'edmp' ),
+					'errorSaving'       => __( 'An error occurred while saving the version information.', 'edmp' ),
+					'close'             => __( 'Close', 'edmp' ),
+				),
 			)
 		);
 	}
@@ -214,7 +219,8 @@ class EHRI_DOI_Version_Manager {
 			wp_send_json_success(
 				array(
 					'panel_html' => self::get_meta_box_html( get_post( $post_id ) ),
-					'message'    => esc_js( 'Post marked as replaced by post ID: ' . $new_version_id ),
+					// translators: %s is the post ID.
+					'message'    => esc_js( sprintf( __( 'Post marked as replaced by post ID: %s', 'edmp' ), $new_version_id ) ),
 				)
 			);
 		} else {
@@ -223,7 +229,7 @@ class EHRI_DOI_Version_Manager {
 			wp_send_json_success(
 				array(
 					'panel_html' => self::get_meta_box_html( get_post( $post_id ) ),
-					'message'    => esc_js( 'Post no longer marked as replaced.' ),
+					'message'    => esc_js( __( 'Post no longer marked as replaced.', 'edmp' ) ),
 				)
 			);
 		}
@@ -242,7 +248,7 @@ class EHRI_DOI_Version_Manager {
 	private function get_modal_html( int $post_id, ?string $new_version_id, array $post_info ): string {
 		ob_start();
 		?>
-		<div id="doi-version-modal" title="Mark post as replaced">
+		<div id="doi-version-modal" title="<?php esc_attr_e( 'Mark post as replaced', 'edmp' ); ?>">
 		<?php if ( ! empty( $post_info ) ) : ?>
 			<label for="new_version_select">
 				<?php esc_html_e( 'Replacement post:', 'edmp' ); ?>
@@ -258,7 +264,7 @@ class EHRI_DOI_Version_Manager {
 		<?php else : ?>
 			<p><?php esc_html_e( 'No other posts available to mark as replaced.', 'edmp' ); ?></p>
 		<?php endif; ?>
-			<button id="save_doi_version_button" class="button">Save</button>
+			<button id="save_doi_version_button" class="button"><?php esc_html_e( 'Save', 'edmp' ); ?></button>
 		</div>
 		<?php
 		return ob_get_clean();

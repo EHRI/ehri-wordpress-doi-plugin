@@ -20,7 +20,7 @@
 						width: 800,
 						modal: true,
 						buttons: {
-							Close: function () {
+							[doiVersion.strings.close]: function () {
 								$( this ).dialog( 'close' );
 							}
 						},
@@ -61,15 +61,14 @@
 							new_version_id: newVersionId,
 						},
 						success: function (response) {
-							alert( response.data.message );
-							// Close the dialog.
-							$( '#doi-version-modal' ).dialog( 'close' );
-
 							// Update the meta box.
 							$( '#doi-version-info' ).replaceWith( $( response.data.panel_html ) );
+
+							// Close the dialog.
+							$( '#doi-version-modal' ).dialog( 'close' );
 						},
 						error: function (e) {
-							alert( 'An error occurred while trying to save the version info.' );
+							alert( doiVersion.strings.errorSaving );
 							console.error( e );
 						}
 					}
@@ -106,11 +105,11 @@
 									initDialog();
 
 								} else {
-									alert( 'Error: ' + response.data );
+									alert( response.data );
 								}
 							},
 							error: function (e) {
-								alert( 'An error occurred while trying to open the DOI version metadata editor.' );
+								alert( doiVersion.strings.errorOpeningModal );
 								console.error( e );
 							}
 						}

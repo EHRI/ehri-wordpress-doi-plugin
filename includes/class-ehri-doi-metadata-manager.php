@@ -158,7 +158,7 @@ class EHRI_DOI_Metadata_Manager {
 	public function add_doi_meta_box() {
 		add_meta_box(
 			'doi-metadata-box',
-			'DOI Metadata',
+			__( 'DOI Metadata', 'edmp' ),
 			array( $this, 'render_meta_box' ),
 			'post',
 			'side',
@@ -279,6 +279,15 @@ class EHRI_DOI_Metadata_Manager {
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'doi_metadata_nonce' ),
+				'strings' => array(
+					'errorOpeningModal'   => __( 'An error occurred while trying to open the DOI metadata editor.', 'edmp' ),
+					'errorSavingMetadata' => __( 'An error occurred while saving the DOI metadata.', 'edmp' ),
+					'errorDeletingDoi'    => __( 'An error occurred while deleting the DOI metadata.', 'edmp' ),
+					'errorUpdatingState'  => __( 'An error occurred while hiding the DOI.', 'edmp' ),
+					'confirmDeleteDoi'    => __( 'Are you sure you want to delete this draft DOI?', 'edmp' ),
+					'error'               => __( 'Error: ', 'edmp' ),
+					'close'               => __( 'Close', 'edmp' ),
+				),
 			)
 		);
 	}
@@ -390,8 +399,8 @@ class EHRI_DOI_Metadata_Manager {
 			'alternateIdentifiers' => $this->helpers->get_alternative_identifier_info( $post_id ),
 			'formats'              => array( 'text/html' ),
 			'types'                => array(
-				'resourceType'        => 'Blog Post',
-				'resourceTypeGeneral' => 'Text',
+				'resourceType'        => __( 'Blog Post', 'edmp' ),
+				'resourceTypeGeneral' => __( 'Text', 'edmp' ),
 			),
 			'language'             => $this->helpers->get_language_code( $post_id ),
 			'relatedIdentifiers'   => $this->helpers->get_related_identifiers( $post_id ),
@@ -497,7 +506,8 @@ class EHRI_DOI_Metadata_Manager {
 
 			wp_send_json_success(
 				array(
-					'message'    => 'DOI deleted successfully: DOI ' . $doi,
+					// translators: %s is the DOI identifier.
+					'message'    => sprintf( __( 'DOI deleted successfully: DOI %s', 'edmp' ), $doi ),
 					'doi'        => $doi,
 					'panel_html' => $this->get_meta_box_html( '', 'draft' ),
 				)
@@ -539,7 +549,8 @@ class EHRI_DOI_Metadata_Manager {
 
 			wp_send_json_success(
 				array(
-					'message'    => 'DOI metadata updated successfully: DOI ' . $doi,
+					// translators: %s is the DOI identifier.
+					'message'    => sprintf( __( 'DOI metadata updated successfully: DOI %s', 'edmp' ), $doi ),
 					'doi'        => $doi,
 					'modal_html' => $this->get_modal_html( $post_id, $response_data['data']['attributes'], $doi, $state ),
 					'panel_html' => $this->get_meta_box_html( $doi, $state ?? 'draft' ),
@@ -591,7 +602,8 @@ class EHRI_DOI_Metadata_Manager {
 
 			wp_send_json_success(
 				array(
-					'message'    => 'DOI metadata registered successfully: DOI ' . $doi,
+					// translators: %s is the DOI identifier.
+					'message'    => sprintf( __( 'DOI metadata registered successfully: DOI %s', 'edmp' ), $doi ),
 					'doi'        => $doi,
 					'modal_html' => $this->get_modal_html( $post_id, $attrs, $doi, $state ),
 					'panel_html' => $this->get_meta_box_html( $doi, $state ),
@@ -620,7 +632,7 @@ class EHRI_DOI_Metadata_Manager {
 		$renderer = new EHRI_DOI_Metadata_Renderer( $data, $doi, $state, $changed );
 		ob_start();
 		?>
-		<div id="doi-metadata-modal" title="Manage DOI Metadata">
+		<div id="doi-metadata-modal" title="<?php esc_attr_e( 'Manage DOI Metadata', 'edmp' ); ?>">
 			<form id="doi-metadata-form">
 				<input type="hidden" name="post_id" value="<?php echo esc_attr( $post_id ); ?>"/>
 				<input type="hidden" name="doi" value="<?php echo esc_attr( $doi ); ?>"/>
@@ -640,29 +652,28 @@ class EHRI_DOI_Metadata_Manager {
 					<?php if ( $doi ) : ?>
 						<button type="button" id="register-doi-metadata"
 								class="button button-primary" <?php echo empty( $changed ) ? 'disabled' : ''; ?>>
-							Update DOI Metadata
+							<?php esc_html_e( 'Update DOI Metadata', 'edmp' ); ?>
 						</button>
 
 						<?php if ( 'draft' === $state ) : ?>
 							<button type="button" id="register-doi" class="button button-secondary"
-									title="Change draft DOI state to 'registered'. Registered DOIs can no longer be deleted.">
-								Publish DOI
+									title="<?php esc_attr_e( "Change draft DOI state to 'registered'. Registered DOIs can no longer be deleted.", 'edmp' ); ?>">
+								<?php esc_html_e( 'Publish DOI', 'edmp' ); ?>
 							</button>
 							<button type="button" id="delete-doi" class="button-link button-link-delete"
-									title="Permanently delete draft DOI">Delete DOI
+									title="<?php esc_attr_e( 'Permanently delete draft DOI', 'edmp' ); ?>"><?php esc_html_e( 'Delete DOI', 'edmp' ); ?>
 							</button>
 						<?php endif; ?>
 
 						<?php if ( 'registered' === $state ) : ?>
 							<button type="button" id="publish-doi" class="button button-secondary"
-									title="Allow DOI to be discoverable via search">Make DOI Findable
+									title="<?php esc_attr_e( 'Allow DOI to be discoverable via search', 'edmp' ); ?>"><?php esc_html_e( 'Make DOI Findable', 'edmp' ); ?>
 							</button>
 						<?php elseif ( 'findable' === $state ) : ?>
-							<button type="button" id="hide-doi" class="button button-secondary">Hide DOI</button>
+							<button type="button" id="hide-doi" class="button button-secondary"><?php esc_html_e( 'Hide DOI', 'edmp' ); ?></button>
 						<?php endif; ?>
 					<?php else : ?>
-						<button type="button" id="register-doi-metadata" class="button button-primary">Create Draft
-							DOI
+						<button type="button" id="register-doi-metadata" class="button button-primary"><?php esc_html_e( 'Create Draft DOI', 'edmp' ); ?>
 						</button>
 					<?php endif; ?>
 				</div>

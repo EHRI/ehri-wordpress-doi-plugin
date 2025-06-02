@@ -3,6 +3,8 @@
  * Plugin Name: EHRI DOI Metadata Plugin
  * Description: Adds DOI metadata management capabilities to WordPress posts
  * Version: 1.0.0
+ * Text Domain: edmp
+ * Domain Path: /languages
  *
  * @package ehri-pid-tools
  */

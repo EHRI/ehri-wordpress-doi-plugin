@@ -315,10 +315,10 @@ class EHRI_DOI_Metadata_Renderer {
 		$type_info = array();
 
 		if ( ! empty( $type['resourceTypeGeneral'] ) ) {
-			$type_info[] = 'Type: ' . htmlspecialchars( $type['resourceTypeGeneral'] );
+			$type_info[] = __( 'Type: ', 'edmp' ) . htmlspecialchars( $type['resourceTypeGeneral'] );
 		}
 		if ( ! empty( $type['resourceType'] ) ) {
-			$type_info[] = 'Specific Type: ' . htmlspecialchars( $type['resourceType'] );
+			$type_info[] = __( 'Specific Type: ', 'edmp' ) . htmlspecialchars( $type['resourceType'] );
 		}
 
 		return $this->render_section(
