@@ -18,6 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * which will then be registered as a new DOI.
  */
 class EHRI_DOI_Version_Manager {
+	/**
+	 * Meta key for the previous version of a post.
+	 */
+	public const META_PREVIOUS_VERSION_OF = '_previous_version_of';
 
 	/**
 	 * Constructor.
@@ -95,7 +99,7 @@ class EHRI_DOI_Version_Manager {
 	 */
 	private static function get_meta_box_html( WP_Post $post ) {
 		ob_start();
-		$new_version_id = get_post_meta( $post->ID, '_previous_version_of', true );
+		$new_version_id = get_post_meta( $post->ID, self::META_PREVIOUS_VERSION_OF, true );
 		?>
 		<div class="doi-version-panel" id="doi-version-info">
 			<?php if ( $new_version_id ) : ?>
@@ -169,11 +173,13 @@ class EHRI_DOI_Version_Manager {
 		}
 
 		// Get all metadata.
-		$new_version_id = get_post_meta( $post_id, '_previous_version_of', true );
+		$new_version_id = intval( get_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF, true ) );
 		$query_args     = array(
 			'post_type'      => 'post',
 			'post_status'    => 'publish',
 			'posts_per_page' => -1,
+			// Prevent PolyLang from filtering the query to only give us posts in the current language.
+			'lang'           => '',
 		);
 		$query          = new WP_Query( $query_args );
 		$post_info      = array();
@@ -214,8 +220,9 @@ class EHRI_DOI_Version_Manager {
 		}
 
 		$new_version_id = isset( $_POST['new_version_id'] ) ? intval( $_POST['new_version_id'] ) : 0;
-		if ( $new_version_id > 0 ) {
-			update_post_meta( $post_id, '_previous_version_of', $new_version_id );
+		if ( $new_version_id && $new_version_id > 0 ) {
+			update_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF, $new_version_id );
+			EHRI_DOI_Events::post_version_set( $post_id, $new_version_id );
 			wp_send_json_success(
 				array(
 					'panel_html' => self::get_meta_box_html( get_post( $post_id ) ),
@@ -225,7 +232,9 @@ class EHRI_DOI_Version_Manager {
 			);
 		} else {
 			// If the version is 0 or not set, remove the meta key.
-			delete_post_meta( $post_id, '_previous_version_of' );
+			$existing_post_id = intval( get_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF, true ) );
+			delete_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF );
+			EHRI_DOI_Events::post_version_removed( $post_id, $existing_post_id );
 			wp_send_json_success(
 				array(
 					'panel_html' => self::get_meta_box_html( get_post( $post_id ) ),
@@ -239,13 +248,13 @@ class EHRI_DOI_Version_Manager {
 	 * Display a modal allowing the user to select a post which
 	 * replaces this one.
 	 *
-	 * @param int         $post_id the post ID.
-	 * @param string|null $new_version_id the new version ID, if any.
-	 * @param array       $post_info the id and title of other posts for selection.
+	 * @param int      $post_id the post ID.
+	 * @param int|null $new_version_id the new version ID, if any.
+	 * @param array    $post_info the id and title of other posts for selection.
 	 *
 	 * @return string the HTML for the modal.
 	 */
-	private function get_modal_html( int $post_id, ?string $new_version_id, array $post_info ): string {
+	private function get_modal_html( int $post_id, ?int $new_version_id, array $post_info ): string {
 		ob_start();
 		?>
 		<div id="doi-version-modal" title="<?php esc_attr_e( 'Mark post as replaced', 'edmp' ); ?>">

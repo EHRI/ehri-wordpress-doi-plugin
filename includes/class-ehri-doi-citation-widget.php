@@ -67,8 +67,8 @@ class EHRI_DOI_Citation_Widget extends WP_Widget {
 		}
 
 		// Check if the post has a DOI.
-		$doi   = get_post_meta( $post->ID, '_doi', true );
-		$state = get_post_meta( $post->ID, '_doi_state', true );
+		$doi   = get_post_meta( $post->ID, EHRI_DOI_META_KEY, true );
+		$state = get_post_meta( $post->ID, EHRI_DOI_STATE_META_KEY, true );
 		if ( empty( $doi ) || empty( $state ) || 'draft' === $state ) {
 			echo '<!-- No DOI or DOI is in draft state, not displaying citation widget -->';
 			return;

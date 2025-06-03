@@ -55,7 +55,7 @@ class EHRI_DOI_Url_Widget extends WP_Widget {
 		parent::__construct(
 			'EHRI_DOI_Url_Widget',
 			__( 'DOI URL Widget [EHRI]', 'edmp' ),
-			array( 'description' => __( "Displays a DOI URL if '_doi' and '_doi_state' metadata is available", 'edmp' ) )
+			array( 'description' => __( 'Displays a DOI URL if the DOI post metadata is available', 'edmp' ) )
 		);
 	}
 
@@ -74,8 +74,8 @@ class EHRI_DOI_Url_Widget extends WP_Widget {
 		}
 
 		// Check if the post has a DOI.
-		$doi   = get_post_meta( $post->ID, '_doi', true );
-		$state = get_post_meta( $post->ID, '_doi_state', true );
+		$doi   = get_post_meta( $post->ID, EHRI_DOI_META_KEY, true );
+		$state = get_post_meta( $post->ID, EHRI_DOI_STATE_META_KEY, true );
 		if ( empty( $doi ) ) {
 			echo '<!-- No DOI available in post metadata -->';
 			return;

@@ -277,11 +277,11 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered language code.
 	 */
 	private function render_version(): string {
-		$year = $this->metadata['version'] ?? '';
+		$version = $this->metadata['version'] ?? '';
 		return $this->render_section(
 			'version',
 			esc_html__( 'Version', 'edmp' ),
-			$year,
+			$version,
 			esc_html__( 'The version of the post, according to its metadata.', 'edmp' )
 		);
 	}

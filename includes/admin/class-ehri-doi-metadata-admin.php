@@ -393,7 +393,7 @@ class EHRI_DOI_Metadata_Admin {
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			'meta_query'     => array(
 				array(
-					'key'     => '_doi',
+					'key'     => EHRI_DOI_META_KEY,
 					'compare' => 'EXISTS',
 				),
 			),
@@ -407,7 +407,7 @@ class EHRI_DOI_Metadata_Admin {
 		if ( $meta_query->have_posts() ) {
 			while ( $meta_query->have_posts() ) {
 				$meta_query->the_post();
-				$doi       = get_post_meta( get_the_ID(), '_doi', true );
+				$doi       = get_post_meta( get_the_ID(), EHRI_DOI_META_KEY, true );
 				$permalink = get_permalink( get_the_ID() );
 				$out      .= sprintf(
 					'%s,%s' . PHP_EOL,

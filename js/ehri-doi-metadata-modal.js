@@ -219,8 +219,9 @@
 							},
 							success: function (response) {
 								if (response.success) {
-									// Close the dialog.
-									$( '#doi-metadata-modal' ).dialog( 'close' );
+									// Update the dialog.
+									$( '#doi-metadata-form' ).replaceWith( $( response.data.modal_html ).find( '#doi-metadata-form' ) );
+									initDialog();
 
 									// Update the meta box.
 									$( '#doi-metadata-info' ).replaceWith( $( response.data.panel_html ) );

@@ -102,7 +102,7 @@ class EHRI_DOI_Metadata_Helpers {
 		$translations = array();
 		if ( function_exists( 'pll_get_post_language' ) ) {
 			foreach ( pll_get_post_translations( $post_id ) as $translation_id ) {
-				$translation_doi = get_post_meta( $translation_id, '_doi', true );
+				$translation_doi = get_post_meta( $translation_id, EHRI_DOI_META_KEY, true );
 				if ( $translation_id !== $post_id && $translation_doi ) {
 					$translations[] = array(
 						'relatedIdentifier'     => $translation_doi,
@@ -119,16 +119,16 @@ class EHRI_DOI_Metadata_Helpers {
 	/**
 	 * Fetch previous/new versions of the post. This is based
 	 * NOT on post revisions, but on the post's metadata key
-	 * '_previous_version_of' and '_new_version_of'.
+	 * '_previous_version_of'.
 	 *
 	 * @param int $post_id the post ID.
 	 */
 	public function get_related_versions( int $post_id ): array {
 		// Query posts which have the metadata key '_doi_previous_version_of' or '_doi_new_version_of'.
 		$versions         = array();
-		$previous_version = get_post_meta( $post_id, '_previous_version_of', true );
+		$previous_version = get_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY, true );
 		if ( $previous_version ) {
-			$previous_doi = get_post_meta( $previous_version, '_doi', true );
+			$previous_doi = get_post_meta( $previous_version, EHRI_DOI_META_KEY, true );
 			if ( $previous_doi ) {
 				$versions[] = array(
 					'relatedIdentifier'     => $previous_doi,
@@ -141,7 +141,7 @@ class EHRI_DOI_Metadata_Helpers {
 		// Run a meta query for posts where the _previous_version_of key is set to the current post ID.
 		$previous_version = $this->get_previous_version( $post_id );
 		if ( $previous_version ) {
-			$previous_doi = get_post_meta( $previous_version, '_doi', true );
+			$previous_doi = get_post_meta( $previous_version, EHRI_DOI_META_KEY, true );
 			if ( $previous_doi ) {
 				$versions[] = array(
 					'relatedIdentifier'     => $previous_doi,
@@ -388,7 +388,7 @@ class EHRI_DOI_Metadata_Helpers {
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			'meta_query'     => array(
 				array(
-					'key'   => '_previous_version_of',
+					'key'   => EHRI_DOI_Version_Manager::META_PREVIOUS_VERSION_OF,
 					'value' => $post_id,
 				),
 			),
