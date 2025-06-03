@@ -20,6 +20,13 @@
 	letter-spacing: 0.5px;
 }
 
+.wp-list-table .doi-state-container {
+	padding: 0.1rem 0.25rem;
+	border-radius: 0.1rem;
+	font-size: unset;
+	text-transform: unset;
+}
+
 .doi-state-icon {
 	border-radius: 50%;
 }

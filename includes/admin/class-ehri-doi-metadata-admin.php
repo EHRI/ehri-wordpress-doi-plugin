@@ -50,6 +50,9 @@ class EHRI_DOI_Metadata_Admin {
 			}
 		);
 
+		// Add DOI and DOI state columns to the post list.
+		$this->setup_post_list_columns();
+
 		// Load options.
 		$this->options = get_option(
 			$this->option_prefix . '_options',
@@ -176,6 +179,16 @@ class EHRI_DOI_Metadata_Admin {
 			'ehri-doi-metadata-settings',
 			'doi_testing_section'
 		);
+	}
+
+	/**
+	 * Setup post list columns for DOIs and DOI states.
+	 */
+	private function setup_post_list_columns() {
+		add_filter( 'manage_posts_columns', array( $this, 'add_custom_columns' ) );
+		add_action( 'manage_posts_custom_column', array( $this, 'display_article_columns' ), 10, 2 );
+		add_action( 'pre_get_posts', array( $this, 'doi_column_orderby' ) );
+		add_action( 'admin_head', array( $this, 'admin_doi_column_styles' ) );
 	}
 
 	/**
@@ -420,5 +433,125 @@ class EHRI_DOI_Metadata_Admin {
 			wp_reset_postdata();
 		}
 		return $out;
+	}
+
+	/**
+	 * For all post types (use 'posts' for the default post type)
+	 * Add custom columns to the admin post list.
+	 *
+	 * @param array $columns the columns array.
+	 * @return array Modified columns array with DOI and DOI state columns.
+	 */
+	public function add_custom_columns( array $columns ): array {
+		// Add new columns after the title column.
+		$new_columns = array();
+		foreach ( $columns as $key => $value ) {
+			$new_columns[ $key ] = $value;
+			if ( 'title' === $key ) {
+				$new_columns['doi']       = sprintf(
+					'<a href="%s">%s</a>',
+					esc_url(
+						add_query_arg(
+							array(
+								'orderby' => EHRI_DOI_META_KEY,
+								'order'   => 'asc',
+							),
+							admin_url( 'edit.php' )
+						)
+					),
+					esc_html__( 'DOI', 'edmp' )
+				);
+				$new_columns['doi_state'] = sprintf(
+					'<a href="%s">%s</a>',
+					esc_url(
+						add_query_arg(
+							array(
+								'orderby' => EHRI_DOI_STATE_META_KEY,
+								'order'   => 'asc',
+							),
+							admin_url( 'edit.php' )
+						)
+					),
+					esc_html__( 'DOI State', 'edmp' )
+				);
+			}
+		}
+
+		return $new_columns;
+	}
+
+	/**
+	 * Set up the DOI info on admin post columns.
+	 *
+	 * @param string $column the column name.
+	 * @param int    $post_id the post ID.
+	 */
+	public function display_article_columns( string $column, int $post_id ) {
+		switch ( $column ) {
+			case 'doi':
+				$prefix = $this->options['resolver_url_prefix'] ?? 'https://doi.org/';
+				$doi    = get_post_meta( $post_id, '_doi', true );
+				if ( ! empty( $doi ) ) {
+					echo '<a href="' . esc_attr( $prefix . $doi ) . '" target="_blank" rel="noopener">' . esc_html( $doi ) . '</a>';
+				} else {
+					echo '—';
+				}
+				break;
+
+			case 'doi_state':
+				$state = get_post_meta( $post_id, '_doi_state', true );
+				if ( ! empty( $state ) ) {
+					switch ( strtolower( $state ) ) {
+						case 'findable':
+							$state_class = 'doi-state-findable';
+							break;
+						case 'registered':
+							$state_class = 'doi-state-registered';
+							break;
+						case 'draft':
+							$state_class = 'doi-state-draft';
+							break;
+						default:
+							$state_class = '';
+					}
+					echo '<span class="doi-state-container ' . esc_attr( $state_class ) . '">' . esc_html( ucfirst( $state ) ) . '</span>';
+				} else {
+					echo '—';
+				}
+				break;
+		}
+	}
+
+	/**
+	 * Handle DOI column sorting logic.
+	 *
+	 * @param WP_Query $query the current query object.
+	 */
+	public function doi_column_orderby( WP_Query $query ) {
+		if ( ! is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+
+		$orderby = $query->get( 'orderby' );
+
+		if ( EHRI_DOI_META_KEY === $orderby ) {
+			$query->set( 'meta_key', EHRI_DOI_META_KEY );
+			$query->set( 'orderby', 'meta_value' );
+		} elseif ( EHRI_DOI_STATE_META_KEY === $orderby ) {
+			$query->set( 'meta_key', EHRI_DOI_STATE_META_KEY );
+			$query->set( 'orderby', 'meta_value' );
+		}
+	}
+
+	/**
+	 * Add custom styles for the DOI columns in the admin post list.
+	 */
+	public function admin_doi_column_styles() {
+		wp_enqueue_style(
+			'ehri-doi-url-css',
+			plugins_url( 'css/ehri-doi-url.css', EHRI_DOI_PLUGIN_PATH ),
+			array(),
+			'1.0.0'
+		);
 	}
 }
