@@ -19,8 +19,6 @@ define( 'EHRI_DOI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EHRI_DOI_PLUGIN_PATH', __FILE__ );
 
 /**
- * Meta keys used for storing DOI metadata.
- *
  * These keys are used to store the DOI, its state, and the previous version of a post.
  */
 const EHRI_DOI_META_KEY                  = '_doi';
@@ -35,6 +33,12 @@ require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-version-manager.php'
 
 // Include the events system.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-events.php';
+
+// Include citation widget.
+require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-citation-widget.php';
+
+// Include DOI URL widget.
+require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-url-widget.php';
 
 // If in DEBUG mode, print the events on the log.
 // phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log

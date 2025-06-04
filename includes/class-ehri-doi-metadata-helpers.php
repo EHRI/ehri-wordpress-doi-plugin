@@ -409,7 +409,7 @@ class EHRI_DOI_Metadata_Helpers {
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			'meta_query'     => array(
 				array(
-					'key'   => EHRI_DOI_Version_Manager::META_PREVIOUS_VERSION_OF,
+					'key'   => EHRI_DOI_PREVIOUS_VERSION_META_KEY,
 					'value' => $post_id,
 				),
 			),

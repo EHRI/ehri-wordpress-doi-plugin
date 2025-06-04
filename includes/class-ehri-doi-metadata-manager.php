@@ -16,12 +16,6 @@ require_once EHRI_DOI_PLUGIN_DIR . 'includes/admin/class-ehri-doi-metadata-admin
 // Include DOI renderer.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-metadata-renderer.php';
 
-// Include citation widget.
-require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-citation-widget.php';
-
-// Include DOI URL widget.
-require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-url-widget.php';
-
 // Include DOI metadata helpers.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-metadata-helpers.php';
 
@@ -323,95 +317,6 @@ class EHRI_DOI_Metadata_Manager {
 	}
 
 	/**
-	 * Update the DOI state.
-	 *
-	 * @param string $event The event to trigger.
-	 *
-	 * @return void
-	 */
-	public function ajax_update_doi_state( string $event ): void {
-		// Verify nonce and permissions.
-		check_ajax_referer( 'doi_metadata_nonce', 'nonce' );
-
-		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
-
-		if ( ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_send_json_error( 'Permission denied' );
-		}
-
-		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
-		if ( ! empty( $doi ) ) {
-
-			// Get current state for comparison.
-			$old_state = get_post_meta( $post_id, EHRI_DOI_STATE_META_KEY, true ) ?? 'draft';
-
-			// Fire before operation event.
-			EHRI_DOI_Events::before_doi_operation(
-				'state_change',
-				$doi,
-				$post_id,
-				array(
-					'event'     => $event,
-					'old_state' => $old_state,
-				)
-			);
-
-			// Prepare the metadata payload.
-			$metadata = array(
-				'data' => array(
-					'type'       => 'dois',
-					'attributes' => array(
-						'event' => $event,
-					),
-				),
-				'meta' => array(
-					'target' => get_the_permalink( $post_id ),
-				),
-			);
-
-			try {
-				$response_data = $this->repository->update_doi( $doi, $metadata );
-				$attributes    = $response_data['data']['attributes'];
-				$new_state     = $attributes['state'];
-				$this->save_doi_post_metadata( $post_id, $doi, $new_state );
-
-				// Fire state change and success events.
-				if ( $old_state !== $new_state ) {
-					EHRI_DOI_Events::doi_state_changed( $doi, $post_id, $old_state, $new_state, $event );
-				}
-				EHRI_DOI_Events::after_doi_operation(
-					'state_change',
-					$doi,
-					$post_id,
-					true,
-					array(
-						'new_state' => $new_state,
-						'event'     => $event,
-					)
-				);
-
-				// Calculate changes.
-				$post_data = $this->initialize_doi_metadata( $post_id );
-				$changed   = EHRI_DOI_Metadata_Helpers::changed_fields( $attributes, $post_data );
-
-				wp_send_json_success(
-					array(
-						'doi'        => $doi,
-						'modal_html' => $this->get_modal_html( $post_id, $post_data, $doi, $new_state, $changed ),
-						'panel_html' => $this->get_meta_box_html( $doi, $new_state ?? 'draft' ),
-					)
-				);
-			} catch ( EHRI_DOI_Repository_Exception $e ) {
-				// Fire error event.
-				EHRI_DOI_Events::doi_api_error( 'update', $doi, $post_id, $e->getMessage(), $e->getCode() );
-				wp_send_json_error( 'Error updating DOI' );
-			}
-		} else {
-			wp_send_json_error( 'No DOI found for this post' );
-		}
-	}
-
-	/**
 	 * Get the DOI metadata from the post information and the
 	 * plugin settings.
 	 *
@@ -523,6 +428,143 @@ class EHRI_DOI_Metadata_Manager {
 	}
 
 	/**
+	 * Register a new DOI for the post.
+	 *
+	 * @param int $post_id The post ID.
+	 *
+	 * @return void
+	 */
+	private function create_doi( int $post_id ): void {
+
+		// Fetch the attributes from the form POST data.
+		$post_attributes = $this->initialize_doi_metadata( $post_id );
+		$prefix          = $this->admin->get_options()['prefix'];
+
+		// Fire before operation event.
+		EHRI_DOI_Events::before_doi_operation( 'create', '', $post_id, array( 'metadata' => $post_attributes ) );
+
+		// Prepare the metadata payload.
+		$payload = array(
+			'data' => array(
+				'type'       => 'dois',
+				'attributes' => array(
+					'prefix' => $prefix,
+				),
+			),
+			'meta' => array(
+				'target' => get_the_permalink( $post_id ),
+			),
+		);
+		// set post data.
+		foreach ( $post_attributes as $key => $value ) {
+			$payload['data']['attributes'][ $key ] = $value;
+		}
+
+		try {
+			// Send the metadata to the DataCite API.
+			$doi_data = $this->repository->create_doi( $payload );
+
+			$doi            = $doi_data['data']['id'];
+			$doi_attributes = $doi_data['data']['attributes'];
+			$doi_state      = $doi_attributes['state'] ?? 'draft';
+			$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
+			// Because we just created the DOI, there are no old metadata to compare against.
+			// However, if we get changes here it will show a bug in the plugin.
+			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes );
+
+			// Fire success events.
+			EHRI_DOI_Events::doi_created( $doi, $post_id, $doi_attributes, $doi_state );
+			EHRI_DOI_Events::after_doi_operation( 'create', $doi, $post_id, true, $doi_attributes );
+
+			wp_send_json_success(
+				array(
+					// translators: %s is the DOI identifier.
+					'message'    => sprintf( __( 'DOI metadata registered successfully: DOI %s', 'edmp' ), $doi ),
+					'doi'        => $doi,
+					'modal_html' => $this->get_modal_html( $post_id, $doi_attributes, $doi, $doi_state, $changed_fields ),
+					'panel_html' => $this->get_meta_box_html( $doi, $doi_state ),
+				)
+			);
+		} catch ( EHRI_DOI_Repository_Exception $e ) {
+			// Fire error events.
+			EHRI_DOI_Events::doi_api_error( 'create', '', $post_id, $e->getMessage(), $e->getCode() );
+			EHRI_DOI_Events::after_doi_operation( 'create', '', $post_id, false, array( 'error' => $e->getMessage() ) );
+
+			wp_send_json_error( $e->getMessage() . ' ' . $e->getCode() );
+		}
+	}
+
+	/**
+	 * Update the DOI metadata for the post.
+	 *
+	 * @param int    $post_id The post ID.
+	 * @param string $doi The DOI.
+	 *
+	 * @return void
+	 */
+	private function update_doi_metadata( int $post_id, string $doi ): void {
+		$post_attributes = $this->initialize_doi_metadata( $post_id );
+
+		// Fire before operation event.
+		EHRI_DOI_Events::before_doi_operation( 'update', $doi, $post_id, array( 'metadata' => $post_attributes ) );
+
+		// Get existing metadata for comparison.
+		try {
+			$existing_data  = $this->repository->get_doi_metadata( $doi );
+			$old_attributes = $existing_data['data']['attributes'] ?? array();
+		} catch ( EHRI_DOI_Repository_Exception $e ) {
+			// Continue with update even if we can't get old metadata.
+			EHRI_DOI_Events::doi_api_error( 'get', $doi, $post_id, $e->getMessage(), $e->getCode() );
+			$old_attributes = array();
+		}
+
+		// Prepare the metadata payload.
+		$payload = array(
+			'data' => array(
+				'type'       => 'dois',
+				'attributes' => $post_attributes,
+			),
+			'meta' => array(
+				'target' => get_the_permalink( $post_id ),
+			),
+		);
+
+		try {
+			// Send the metadata to the DataCite API.
+			$doi_data = $this->repository->update_doi( $doi, $payload );
+
+			// Save the updated post info.
+			$doi_attributes = $doi_data['data']['attributes'];
+			$doi_state      = $doi_attributes['state'];
+			$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
+
+			// Calculate changed fields and fire events.
+			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $old_attributes, $post_attributes );
+			EHRI_DOI_Events::doi_updated( $doi, $post_id, $old_attributes, $doi_attributes, $changed_fields );
+			EHRI_DOI_Events::after_doi_operation( 'update', $doi, $post_id, true, $doi_attributes );
+
+			// Recalculate the changed fields with the updated data (there should be no changes, unless there's a bug).
+			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes );
+
+			wp_send_json_success(
+				array(
+					// translators: %s is the DOI identifier.
+					'message'    => sprintf( __( 'DOI metadata updated successfully for DOI: %s', 'edmp' ), $doi ),
+					'doi'        => $doi,
+					'modal_html' => $this->get_modal_html( $post_id, $doi_attributes, $doi, $doi_state, $changed_fields ),
+					'panel_html' => $this->get_meta_box_html( $doi, $doi_state ?? 'draft' ),
+				)
+			);
+		} catch ( EHRI_DOI_Repository_Exception $e ) {
+			// Fire error events.
+			EHRI_DOI_Events::doi_api_error( 'update', $doi, $post_id, $e->getMessage(), $e->getCode() );
+			EHRI_DOI_Events::after_doi_operation( 'update', $doi, $post_id, false, array( 'error' => $e->getMessage() ) );
+
+			wp_send_json_error( 'Error updating DOI metadata' );
+		}
+	}
+
+	/**
 	 * Delete a draft DOI.
 	 *
 	 * @param int    $post_id The post ID.
@@ -532,17 +574,17 @@ class EHRI_DOI_Metadata_Manager {
 	 */
 	private function delete_doi( int $post_id, string $doi ) {
 		// Get existing metadata before deletion.
-		$metadata = array();
 		try {
-			$existing_data = $this->repository->get_doi_metadata( $doi );
-			$metadata      = $existing_data['data']['attributes'] ?? array();
+			$existing_data  = $this->repository->get_doi_metadata( $doi );
+			$old_attributes = $existing_data['data']['attributes'] ?? array();
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
 			// Continue with deletion even if we can't get metadata.
 			EHRI_DOI_Events::doi_api_error( 'get', $doi, $post_id, $e->getMessage(), $e->getCode() );
+			$old_attributes = array();
 		}
 
 		// Fire before operation event.
-		EHRI_DOI_Events::before_doi_operation( 'delete', $doi, $post_id, array( 'metadata' => $metadata ) );
+		EHRI_DOI_Events::before_doi_operation( 'delete', $doi, $post_id, array( 'metadata' => $old_attributes ) );
 
 		try {
 			// Delete the DOI from the DataCite API.
@@ -552,8 +594,8 @@ class EHRI_DOI_Metadata_Manager {
 			$this->delete_doi_post_metadata( $post_id, $doi );
 
 			// Fire success events.
-			EHRI_DOI_Events::doi_deleted( $doi, $post_id, $metadata );
-			EHRI_DOI_Events::after_doi_operation( 'delete', $doi, $post_id, true, array( 'deleted_metadata' => $metadata ) );
+			EHRI_DOI_Events::doi_deleted( $doi, $post_id, $old_attributes );
+			EHRI_DOI_Events::after_doi_operation( 'delete', $doi, $post_id, true, array( 'deleted_metadata' => $old_attributes ) );
 
 			wp_send_json_success(
 				array(
@@ -574,136 +616,96 @@ class EHRI_DOI_Metadata_Manager {
 	}
 
 	/**
-	 * Update the DOI metadata for the post.
+	 * Update the DOI state.
 	 *
-	 * @param int    $post_id The post ID.
-	 * @param string $doi The DOI.
+	 * @param string $event The event to trigger.
 	 *
 	 * @return void
 	 */
-	private function update_doi_metadata( int $post_id, string $doi ): void {
-		$post_data = $this->initialize_doi_metadata( $post_id );
+	public function ajax_update_doi_state( string $event ): void {
+		// Verify nonce and permissions.
+		check_ajax_referer( 'doi_metadata_nonce', 'nonce' );
 
-		// Fire before operation event.
-		EHRI_DOI_Events::before_doi_operation( 'update', $doi, $post_id, array( 'metadata' => $post_data ) );
+		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 
-		// Get existing metadata for comparison.
-		$old_metadata = array();
-		try {
-			$existing_data = $this->repository->get_doi_metadata( $doi );
-			$old_metadata  = $existing_data['data']['attributes'] ?? array();
-		} catch ( EHRI_DOI_Repository_Exception $e ) {
-			// Continue with update even if we can't get old metadata.
-			EHRI_DOI_Events::doi_api_error( 'get', $doi, $post_id, $e->getMessage(), $e->getCode() );
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( 'Permission denied' );
 		}
 
-		// Prepare the metadata payload.
-		$metadata = array(
-			'data' => array(
-				'type'       => 'dois',
-				'attributes' => $post_data,
-			),
-			'meta' => array(
-				'target' => get_the_permalink( $post_id ),
-			),
-		);
+		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
+		if ( ! empty( $doi ) ) {
 
-		try {
-			// Send the metadata to the DataCite API.
-			$response_data = $this->repository->update_doi( $doi, $metadata );
+			// Get current state for comparison.
+			$old_state = get_post_meta( $post_id, EHRI_DOI_STATE_META_KEY, true ) ?? 'draft';
 
-			// Save the updated post info.
-			$attributes = $response_data['data']['attributes'];
-			$state      = $attributes['state'];
-			$this->save_doi_post_metadata( $post_id, $doi, $state );
-
-			// Calculate changed fields and fire events.
-			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $old_metadata, $post_data );
-			EHRI_DOI_Events::doi_updated( $doi, $post_id, $old_metadata, $attributes, $changed_fields );
-			EHRI_DOI_Events::after_doi_operation( 'update', $doi, $post_id, true, $attributes );
-
-			wp_send_json_success(
+			// Fire before operation event.
+			EHRI_DOI_Events::before_doi_operation(
+				'state_change',
+				$doi,
+				$post_id,
 				array(
-					// translators: %s is the DOI identifier.
-					'message'    => sprintf( __( 'DOI metadata updated successfully for DOI: %s', 'edmp' ), $doi ),
-					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $attributes, $doi, $state, $changed_fields ),
-					'panel_html' => $this->get_meta_box_html( $doi, $state ?? 'draft' ),
+					'event'     => $event,
+					'old_state' => $old_state,
 				)
 			);
-		} catch ( EHRI_DOI_Repository_Exception $e ) {
-			// Fire error events.
-			EHRI_DOI_Events::doi_api_error( 'update', $doi, $post_id, $e->getMessage(), $e->getCode() );
-			EHRI_DOI_Events::after_doi_operation( 'update', $doi, $post_id, false, array( 'error' => $e->getMessage() ) );
 
-			wp_send_json_error( 'Error updating DOI metadata' );
-		}
-	}
-
-	/**
-	 * Register a new DOI for the post.
-	 *
-	 * @param int $post_id The post ID.
-	 *
-	 * @return void
-	 */
-	private function create_doi( int $post_id ): void {
-
-		// Fetch the attributes from the form POST data.
-		$init_data = $this->initialize_doi_metadata( $post_id );
-		$prefix    = $this->admin->get_options()['prefix'];
-
-		// Fire before operation event.
-		EHRI_DOI_Events::before_doi_operation( 'create', '', $post_id, array( 'metadata' => $init_data ) );
-
-		// Prepare the metadata payload.
-		$metadata = array(
-			'data' => array(
-				'type'       => 'dois',
-				'attributes' => array(
-					'prefix' => $prefix,
+			// Prepare the metadata payload.
+			$payload = array(
+				'data' => array(
+					'type'       => 'dois',
+					'attributes' => array(
+						'event' => $event,
+					),
 				),
-			),
-			'meta' => array(
-				'target' => get_the_permalink( $post_id ),
-			),
-		);
-		// set post data.
-		foreach ( $init_data as $key => $value ) {
-			$metadata['data']['attributes'][ $key ] = $value;
-		}
-
-		try {
-			// Send the metadata to the DataCite API.
-			$response_data = $this->repository->create_doi( $metadata );
-
-			$doi        = $response_data['data']['id'];
-			$attributes = $response_data['data']['attributes'];
-			$state      = $attributes['state'] ?? 'draft';
-			$this->save_doi_post_metadata( $post_id, $doi, $state );
-			// Because we just created the DOI, there are no old metadata to compare against.
-			// However, if we get changes here it will show a bug in the plugin.
-			$changed = EHRI_DOI_Metadata_Helpers::changed_fields( $attributes, $init_data );
-
-			// Fire success events.
-			EHRI_DOI_Events::doi_created( $doi, $post_id, $attributes, $state );
-			EHRI_DOI_Events::after_doi_operation( 'create', $doi, $post_id, true, $attributes );
-
-			wp_send_json_success(
-				array(
-					// translators: %s is the DOI identifier.
-					'message'    => sprintf( __( 'DOI metadata registered successfully: DOI %s', 'edmp' ), $doi ),
-					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $init_data, $doi, $state, $changed ),
-					'panel_html' => $this->get_meta_box_html( $doi, $state ),
-				)
+				'meta' => array(
+					'target' => get_the_permalink( $post_id ),
+				),
 			);
-		} catch ( EHRI_DOI_Repository_Exception $e ) {
-			// Fire error events.
-			EHRI_DOI_Events::doi_api_error( 'create', '', $post_id, $e->getMessage(), $e->getCode() );
-			EHRI_DOI_Events::after_doi_operation( 'create', '', $post_id, false, array( 'error' => $e->getMessage() ) );
 
-			wp_send_json_error( $e->getMessage() . ' ' . $e->getCode() );
+			try {
+				$doi_data       = $this->repository->update_doi( $doi, $payload );
+				$doi_attributes = $doi_data['data']['attributes'];
+				$doi_state      = $doi_attributes['state'];
+				$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
+
+				// Fire state change and success events.
+				if ( $old_state !== $doi_state ) {
+					EHRI_DOI_Events::doi_state_changed( $doi, $post_id, $old_state, $doi_state, $event );
+				}
+				EHRI_DOI_Events::after_doi_operation(
+					'state_change',
+					$doi,
+					$post_id,
+					true,
+					array(
+						'new_state' => $doi_state,
+						'event'     => $event,
+					)
+				);
+
+				// Calculate changes.
+				$post_attributes = $this->initialize_doi_metadata( $post_id );
+				$changed_fields  = EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes );
+
+				wp_send_json_success(
+					array(
+						'message'    => sprintf(
+							// translators: %s is the DOI identifier.
+							__( 'DOI state updated successfully: %s', 'edmp' ),
+							$doi
+						),
+						'doi'        => $doi,
+						'modal_html' => $this->get_modal_html( $post_id, $doi_attributes, $doi, $doi_state, $changed_fields ),
+						'panel_html' => $this->get_meta_box_html( $doi, $doi_state ?? 'draft' ),
+					)
+				);
+			} catch ( EHRI_DOI_Repository_Exception $e ) {
+				// Fire error event.
+				EHRI_DOI_Events::doi_api_error( 'update', $doi, $post_id, $e->getMessage(), $e->getCode() );
+				wp_send_json_error( 'Error updating DOI' );
+			}
+		} else {
+			wp_send_json_error( 'No DOI found for this post' );
 		}
 	}
 
@@ -716,7 +718,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * @param string|null $doi the DOI, if available.
 	 * @param string      $state the state of the DOI (draft, registered, findable).
 	 * @param array       $changed an array of fields which differ on the DOI metadata
-	 *                               and the post metadata.
+	 *                                     and the post metadata.
 	 * @param array|false $tombstone whether the DOI is a tombstone.
 	 *
 	 * @return string the HTML for the modal.

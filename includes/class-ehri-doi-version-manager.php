@@ -19,11 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class EHRI_DOI_Version_Manager {
 	/**
-	 * Meta key for the previous version of a post.
-	 */
-	public const META_PREVIOUS_VERSION_OF = '_previous_version_of';
-
-	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -99,7 +94,7 @@ class EHRI_DOI_Version_Manager {
 	 */
 	private static function get_meta_box_html( WP_Post $post ) {
 		ob_start();
-		$new_version_id = get_post_meta( $post->ID, self::META_PREVIOUS_VERSION_OF, true );
+		$new_version_id = get_post_meta( $post->ID, EHRI_DOI_PREVIOUS_VERSION_META_KEY, true );
 		?>
 		<div class="doi-version-panel" id="doi-version-info">
 			<?php if ( $new_version_id ) : ?>
@@ -173,7 +168,7 @@ class EHRI_DOI_Version_Manager {
 		}
 
 		// Get all metadata.
-		$new_version_id = intval( get_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF, true ) );
+		$new_version_id = intval( get_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY, true ) );
 		$query_args     = array(
 			'post_type'      => 'post',
 			'post_status'    => 'publish',
@@ -221,7 +216,7 @@ class EHRI_DOI_Version_Manager {
 
 		$new_version_id = isset( $_POST['new_version_id'] ) ? intval( $_POST['new_version_id'] ) : 0;
 		if ( $new_version_id && $new_version_id > 0 ) {
-			update_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF, $new_version_id );
+			update_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY, $new_version_id );
 			EHRI_DOI_Events::post_version_set( $post_id, $new_version_id );
 			wp_send_json_success(
 				array(
@@ -232,8 +227,8 @@ class EHRI_DOI_Version_Manager {
 			);
 		} else {
 			// If the version is 0 or not set, remove the meta key.
-			$existing_post_id = intval( get_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF, true ) );
-			delete_post_meta( $post_id, self::META_PREVIOUS_VERSION_OF );
+			$existing_post_id = intval( get_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY, true ) );
+			delete_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY );
 			EHRI_DOI_Events::post_version_removed( $post_id, $existing_post_id );
 			wp_send_json_success(
 				array(
