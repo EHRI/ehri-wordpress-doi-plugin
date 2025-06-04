@@ -168,6 +168,27 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Fetch subjects for the post from its tags. For the moment
+	 * this is just free text. Ideally, it would contain links to
+	 * a controlled vocabulary, but this is not yet implemented.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return array
+	 */
+	public function get_subject_info( int $post_id ): array {
+		$subjects = array();
+		$tags     = get_the_tags( $post_id );
+		if ( $tags ) {
+			foreach ( $tags as $tag ) {
+				$subjects[] = array(
+					'subject' => $this->clean_text( $tag->name ),
+				);
+			}
+		}
+		return $subjects;
+	}
+
+	/**
 	 * Fetch the authors for the post.
 	 *
 	 * @param int $post_id the post ID.

@@ -429,6 +429,7 @@ class EHRI_DOI_Metadata_Manager {
 			'dates'                => $this->helpers->get_date_info( $post_id ),
 			'alternateIdentifiers' => $this->helpers->get_alternative_identifier_info( $post_id ),
 			'formats'              => array( 'text/html' ),
+			'subjects'             => $this->helpers->get_subject_info( $post_id ),
 			'types'                => array(
 				'resourceType'        => __( 'Blog Post', 'edmp' ),
 				'resourceTypeGeneral' => __( 'Text', 'edmp' ),
