@@ -63,8 +63,8 @@ class EHRI_DOI_Metadata_Renderer {
 			return '<p>Invalid or empty metadata.</p>';
 		}
 
-		$html  = '<table class="doi-metadata">';
-		$html .= $this->render_doi();
+		$html  = $this->render_doi();
+		$html .= '<div class="doi-metadata">';
 		$html .= $this->render_titles();
 		$html .= $this->render_creators();
 		$html .= $this->render_publishers();
@@ -77,7 +77,7 @@ class EHRI_DOI_Metadata_Renderer {
 		$html .= $this->render_related();
 		$html .= $this->render_url();
 		$html .= $this->render_version();
-		$html .= '</table>';
+		$html .= '</div>';
 
 		return $html;
 	}
@@ -92,12 +92,12 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered section.
 	 */
 	private function render_section( string $key, string $title, string $content, string $description ): string {
-		return '<tr class="doi-metadata-section doi-metadata-'
+		return '<div class="doi-metadata-section doi-metadata-'
 					. $key . ( in_array( $key, $this->changed, true ) ? ' changed' : '' ) . '">' .
-				'<td>' . $title . '</td>' .
-				'<td>' . $content . '</td>' .
-				'<td>' . $description . '</td>' .
-				'</tr>';
+				'<div>' . $title . '</div>' .
+				'<div>' . $content . '</div>' .
+				'<div>' . $description . '</div>' .
+				'</div>';
 	}
 
 	/**

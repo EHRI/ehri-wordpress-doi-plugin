@@ -51,37 +51,63 @@
 	font-weight: bold;
 }
 
-table.doi-metadata {
+.doi-metadata {
 	border-collapse: collapse;
+	display: grid;
+	grid-template-columns: 1fr 2fr 1fr;
+	gap: 0.5rem;
 }
 
-.doi-metadata td {
+/** Responsive fixes for the metadata table at narrow widths */
+@media (max-width: 768px) {
+	.ui-dialog {
+		position: fixed !important;
+		top: 10px !important;
+		left: 10px !important;
+		right: 10px !important;
+		width: auto !important;
+		max-height: calc(100vh - 20px) !important;
+		overflow: auto !important;
+	}
+
+	.ui-dialog .ui-dialog-content {
+		/*max-height: calc(100vh - 120px) !important;*/
+		/*overflow-y: auto !important;*/
+	}
+
+	.doi-metadata {
+		grid-template-columns: 1fr;
+	}
+}
+
+.doi-metadata .doi-metadata-section {
 	vertical-align: top;
+	display: contents;
 }
 
-.doi-metadata td ul {
+.doi-metadata .doi-metadata-section > div ul {
 	margin: 0;
 }
 
-.doi-metadata td {
+.doi-metadata .doi-metadata-section > div {
 	padding: 0.5rem 0;
 	border-bottom: 1px solid #ddd;
 }
 
-.doi-metadata td:first-child {
+.doi-metadata .doi-metadata-section > div:first-child {
 	font-weight: bold;
 	padding-right: 1rem;
 }
 
-.doi-metadata td:first-child .changed {
+.doi-metadata .doi-metadata-section > div:first-child .changed {
 }
 
-.doi-metadata td:last-child {
+.doi-metadata .doi-metadata-section > div:last-child {
 	padding-left: 1rem;
 	font-style: italic;
 }
 
-.doi-metadata-section.changed td:nth-child(2) {
+.doi-metadata-section.changed > div:nth-child(2) {
 	font-weight: bolder;
 	color: #0f6674;
 }

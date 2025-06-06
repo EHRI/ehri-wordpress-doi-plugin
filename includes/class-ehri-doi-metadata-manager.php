@@ -305,12 +305,12 @@ class EHRI_DOI_Metadata_Manager {
 		if ( ! empty( $doi ) ) {
 			$this->fetch_doi_metadata( $post_id, $doi );
 		} else {
-			$data = $this->initialize_doi_metadata( $post_id );
+			$post_attributes = $this->initialize_doi_metadata( $post_id );
 			// Send data for the modal.
 			wp_send_json_success(
 				array(
-					'data'       => $data,
-					'modal_html' => $this->get_modal_html( $post_id, $data ),
+					'data'       => $post_attributes,
+					'modal_html' => $this->get_modal_html( $post_id, $post_attributes ),
 				)
 			);
 		}
@@ -363,22 +363,24 @@ class EHRI_DOI_Metadata_Manager {
 	 * @return void
 	 */
 	private function fetch_doi_metadata( int $post_id, string $doi ): void {
+		// Fetch post attributes.
+		$post_attributes = $this->initialize_doi_metadata( $post_id );
+
 		// Fetch metadata from DataCite API.
 		try {
-			$response_data = $this->repository->get_doi_metadata( $doi );
+			$doi_data = $this->repository->get_doi_metadata( $doi );
 
 			// Calculate changes.
-			$attrs     = $response_data['data']['attributes'];
-			$tombstone = $response_data['meta']['tombstone'] ?? false;
-			$state     = $attrs['state'] ?? 'draft';
-			$init_data = $this->initialize_doi_metadata( $post_id );
-			$changed   = $doi ? EHRI_DOI_Metadata_Helpers::changed_fields( $attrs, $init_data ) : array();
+			$doi_attributes = $doi_data['data']['attributes'];
+			$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
+			$doi_state      = $doi_attributes['state'] ?? 'draft';
+			$changed_fields = $doi ? EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes ) : array();
 
 			// Send data for the modal.
 			wp_send_json_success(
 				array(
-					'data'       => $attrs,
-					'modal_html' => $this->get_modal_html( $post_id, $init_data, $doi, $state, $changed, $tombstone ),
+					'data'       => $doi_attributes,
+					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
 				)
 			);
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
@@ -466,6 +468,7 @@ class EHRI_DOI_Metadata_Manager {
 
 			$doi            = $doi_data['data']['id'];
 			$doi_attributes = $doi_data['data']['attributes'];
+			$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
 			$doi_state      = $doi_attributes['state'] ?? 'draft';
 			$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
 			// Because we just created the DOI, there are no old metadata to compare against.
@@ -481,7 +484,7 @@ class EHRI_DOI_Metadata_Manager {
 					// translators: %s is the DOI identifier.
 					'message'    => sprintf( __( 'DOI metadata registered successfully: DOI %s', 'edmp' ), $doi ),
 					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $doi_attributes, $doi, $doi_state, $changed_fields ),
+					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
 					'panel_html' => $this->get_meta_box_html( $doi, $doi_state ),
 				)
 			);
@@ -535,6 +538,7 @@ class EHRI_DOI_Metadata_Manager {
 
 			// Save the updated post info.
 			$doi_attributes = $doi_data['data']['attributes'];
+			$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
 			$doi_state      = $doi_attributes['state'];
 			$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
 
@@ -551,7 +555,7 @@ class EHRI_DOI_Metadata_Manager {
 					// translators: %s is the DOI identifier.
 					'message'    => sprintf( __( 'DOI metadata updated successfully for DOI: %s', 'edmp' ), $doi ),
 					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $doi_attributes, $doi, $doi_state, $changed_fields ),
+					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
 					'panel_html' => $this->get_meta_box_html( $doi, $doi_state ?? 'draft' ),
 				)
 			);
@@ -597,12 +601,13 @@ class EHRI_DOI_Metadata_Manager {
 			EHRI_DOI_Events::doi_deleted( $doi, $post_id, $old_attributes );
 			EHRI_DOI_Events::after_doi_operation( 'delete', $doi, $post_id, true, array( 'deleted_metadata' => $old_attributes ) );
 
+			$post_attributes = $this->initialize_doi_metadata( $post_id );
 			wp_send_json_success(
 				array(
 					// translators: %s is the DOI identifier.
 					'message'    => sprintf( __( 'DOI deleted successfully: DOI %s', 'edmp' ), $doi ),
 					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $this->initialize_doi_metadata( $post_id ) ),
+					'modal_html' => $this->get_modal_html( $post_id, $post_attributes ),
 					'panel_html' => $this->get_meta_box_html( '', 'draft' ),
 				)
 			);
@@ -665,6 +670,7 @@ class EHRI_DOI_Metadata_Manager {
 			try {
 				$doi_data       = $this->repository->update_doi( $doi, $payload );
 				$doi_attributes = $doi_data['data']['attributes'];
+				$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
 				$doi_state      = $doi_attributes['state'];
 				$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
 
@@ -695,7 +701,7 @@ class EHRI_DOI_Metadata_Manager {
 							$doi
 						),
 						'doi'        => $doi,
-						'modal_html' => $this->get_modal_html( $post_id, $doi_attributes, $doi, $doi_state, $changed_fields ),
+						'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
 						'panel_html' => $this->get_meta_box_html( $doi, $doi_state ?? 'draft' ),
 					)
 				);
