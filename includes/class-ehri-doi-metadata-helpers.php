@@ -323,18 +323,6 @@ class EHRI_DOI_Metadata_Helpers {
 	 */
 	public static function changed_fields( array $existing, array $new ): array {
 
-		// HACK: we're comparing our WordPress derived data with that
-		// returned from the DataCite API. In most cases the data we
-		// give the API comes back unchanged, but in some cases they
-		// augment it with additional values. One of these cases is
-		// the `types` field, which comes back with definitions for
-		// `res`, `bibtex`, and `schemaOrg` types. I don't really know
-		// why they do this, but it means that we can't do a strict
-		// comparison of the two arrays, as the existing metadata.
-		$augmented_keys = array(
-			'types',
-		);
-
 		$changed = array();
 		// Compare the existing and new metadata.
 		foreach ( $new as $key => $value ) {
@@ -345,8 +333,7 @@ class EHRI_DOI_Metadata_Helpers {
 
 			// Check if we have an array that is a different length from that
 			// in the existing metadata.
-			if ( is_array( $existing[ $key ] ) && is_array( $value ) && count( $existing[ $key ] ) !== count( $value )
-				&& ! in_array( $key, $augmented_keys, true ) ) {
+			if ( is_array( $existing[ $key ] ) && is_array( $value ) && count( $existing[ $key ] ) !== count( $value ) ) {
 				$changed[] = $key;
 				continue;
 			}
