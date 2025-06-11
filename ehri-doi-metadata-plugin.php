@@ -24,6 +24,7 @@ define( 'EHRI_DOI_PLUGIN_PATH', __FILE__ );
 const EHRI_DOI_META_KEY                  = '_doi';
 const EHRI_DOI_STATE_META_KEY            = '_doi_state';
 const EHRI_DOI_PREVIOUS_VERSION_META_KEY = '_previous_version_of';
+const EHRI_DOI_PLUGIN_OPTION_PREFIX      = '_ehri_doi_plugin_options';
 
 // Include the metadata plugin class.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-metadata-manager.php';

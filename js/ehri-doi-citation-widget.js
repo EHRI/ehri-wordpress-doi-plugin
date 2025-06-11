@@ -205,8 +205,9 @@ jQuery( document ).ready(
 		try {
 			// We're going to hack XHR to swap out https://doi.org/
 			// for the DataCite API URL...
-
-			interceptXHRUrl( 'https://doi.org/', 'https://api.test.datacite.org/dois/', true );
+			if ( doiCitationWidget.resolverUrlPrefix ) {
+				interceptXHRUrl( 'https://doi.org/', doiCitationWidget.resolverUrlPrefix, true );
+			}
 			let cite = new Cite( postDOI );
 
 			$loading.hide();

@@ -46,7 +46,7 @@ class EHRI_DOI_Url_Widget extends WP_Widget {
 	 */
 	public function __construct() {
 		$this->resolver_url_prefix = get_option(
-			'_ehri_doi_plugin_options',
+			EHRI_DOI_PLUGIN_OPTION_PREFIX,
 			array(
 				'resolver_url_prefix' => 'https://doi.org/',
 			)

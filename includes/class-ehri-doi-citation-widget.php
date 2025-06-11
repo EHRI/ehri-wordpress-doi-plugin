@@ -25,9 +25,19 @@ function enqueue_citation_js() {
 	wp_enqueue_style( 'ehri-doi-citation-widget-css', plugins_url( 'css/ehri-doi-citation-widget.css', EHRI_DOI_PLUGIN_PATH ), array(), '1.0.0' );
 	wp_enqueue_script( 'citation-js', 'https://cdn.jsdelivr.net/npm/citation-js@0.7.18/build/citation.min.js', array(), '0.7.18', true );
 	wp_enqueue_script( 'ehri-doi-citation-widget-js', plugin_dir_url( EHRI_DOI_PLUGIN_PATH ) . 'js/ehri-doi-citation-widget.js', array( 'jquery', 'citation-js' ), '1.0', true );
+	wp_localize_script(
+		'ehri-doi-citation-widget-js',
+		'doiCitationWidget',
+		array(
+			'resolverUrlPrefix' => get_option(
+				EHRI_DOI_PLUGIN_OPTION_PREFIX,
+				array(
+					'citation_resolver_url_prefix' => 'https://doi.org/',
+				)
+			)['citation_resolver_url_prefix'],
+		)
+	);
 }
-
-add_action( 'wp_enqueue_scripts', 'enqueue_citation_js' );
 
 /**
  * Renders a DOI URL if the post has a DOI and the state is not 'draft'
@@ -38,18 +48,13 @@ class EHRI_DOI_Citation_Widget extends WP_Widget {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->fake_citation_doi = get_option(
-			'_ehri_doi_plugin_options',
-			array(
-				'fake_citation_doi' => false,
-			)
-		)['fake_citation_doi'];
-
 		parent::__construct(
 			'EHRI_DOI_Citation_Widget',
 			__( 'Citation Widget [EHRI]', 'edmp' ),
 			array( 'description' => __( 'Displays citation options for posts with DOIs' ) )
 		);
+
+		add_action( 'wp_enqueue_scripts', 'enqueue_citation_js' );
 	}
 
 	/**
@@ -72,12 +77,6 @@ class EHRI_DOI_Citation_Widget extends WP_Widget {
 		if ( empty( $doi ) || empty( $state ) || 'draft' === $state ) {
 			echo '<!-- No DOI or DOI is in draft state, not displaying citation widget -->';
 			return;
-		}
-
-		// Override the DOI with the fake citation DOI if set.
-		if ( $this->fake_citation_doi ) {
-			echo '<!-- Using fake citation DOI for testing -->';
-			$doi = $this->fake_citation_doi;
 		}
 
 		echo $args['before_widget'];

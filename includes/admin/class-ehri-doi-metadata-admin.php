@@ -12,13 +12,6 @@
  */
 class EHRI_DOI_Metadata_Admin {
 	/**
-	 * The option prefix for the settings.
-	 *
-	 * @var string The prefix for the options stored in the database.
-	 */
-	private string $option_prefix = '_ehri_doi_plugin';
-
-	/**
 	 * The options array.
 	 *
 	 * @var array The options array.
@@ -55,7 +48,7 @@ class EHRI_DOI_Metadata_Admin {
 
 		// Load options.
 		$this->options = get_option(
-			$this->option_prefix . '_options',
+			EHRI_DOI_PLUGIN_OPTION_PREFIX,
 			array(
 				'publisher'           => '',
 				'service_url'         => 'https://api.datacite.org/dois',
@@ -87,7 +80,7 @@ class EHRI_DOI_Metadata_Admin {
 		// Register a single option to store all our settings.
 		register_setting(
 			'doi_metadata_settings',
-			$this->option_prefix . '_options',
+			EHRI_DOI_PLUGIN_OPTION_PREFIX,
 			array( $this, 'sanitize_settings' )
 		);
 
@@ -139,6 +132,14 @@ class EHRI_DOI_Metadata_Admin {
 			'doi_provider_section'
 		);
 
+		add_settings_field(
+			'citation_resolver_url_prefix',
+			__( 'Citation Resolver URL Prefix', 'edmp' ),
+			array( $this, 'citation_resolver_url_prefix_field_callback' ),
+			'ehri-doi-metadata-settings',
+			'doi_provider_section'
+		);
+
 		// DOI Provider Credentials Section.
 		add_settings_section(
 			'doi_provider_credentials_section',
@@ -162,22 +163,6 @@ class EHRI_DOI_Metadata_Admin {
 			'ehri-doi-metadata-settings',
 			'doi_provider_credentials_section',
 			array( 'type' => 'password' )
-		);
-
-		// Testing section.
-		add_settings_section(
-			'doi_testing_section',
-			__( 'Testing Parameters', 'edmp' ),
-			array( $this, 'testing_section_callback' ),
-			'ehri-doi-metadata-settings'
-		);
-
-		add_settings_field(
-			'fake_citation_doi',
-			__( 'Placeholder test DOI', 'edmp' ),
-			array( $this, 'fake_citation_doi_field_callback' ),
-			'ehri-doi-metadata-settings',
-			'doi_testing_section'
 		);
 	}
 
@@ -207,15 +192,13 @@ class EHRI_DOI_Metadata_Admin {
 		$output['prefix'] = sanitize_text_field( $input['prefix'] );
 
 		// Sanitize provider URLs.
-		$output['service_url']         = esc_url_raw( $input['service_url'] );
-		$output['resolver_url_prefix'] = esc_url_raw( $input['resolver_url_prefix'] );
+		$output['service_url']                  = esc_url_raw( $input['service_url'] );
+		$output['resolver_url_prefix']          = esc_url_raw( $input['resolver_url_prefix'] );
+		$output['citation_resolver_url_prefix'] = esc_url_raw( $input['citation_resolver_url_prefix'] );
 
 		// Sanitize credentials.
 		$output['client_id']     = sanitize_text_field( $input['client_id'] );
 		$output['client_secret'] = sanitize_text_field( $input['client_secret'] );
-
-		// Testing parameters.
-		$output['fake_citation_doi'] = sanitize_text_field( $input['fake_citation_doi'] );
 
 		return $output;
 	}
@@ -247,8 +230,8 @@ class EHRI_DOI_Metadata_Admin {
 	public function publisher_field_callback() {
 		$value = $this->options['publisher'] ?? '';
 		echo sprintf(
-			'<input type="text" id="publisher" name="%s_options[publisher]" value="%s" class="regular-text" />',
-			esc_attr( $this->option_prefix ),
+			'<input type="text" id="publisher" name="%s[publisher]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The name of the organization or publisher responsible for issuing DOIs.', 'edmp' ) . '</p>';
@@ -260,8 +243,8 @@ class EHRI_DOI_Metadata_Admin {
 	public function prefix_field_callback() {
 		$value = $this->options['prefix'] ?? '';
 		echo sprintf(
-			'<input type="text" id="prefix" name="%s_options[prefix]" value="%s" />',
-			esc_attr( $this->option_prefix ),
+			'<input type="text" id="prefix" name="%s[prefix]" value="%s" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'Your registered DOI prefix (e.g., 10.1234)', 'edmp' ) . '</p>';
@@ -273,8 +256,8 @@ class EHRI_DOI_Metadata_Admin {
 	public function service_url_field_callback() {
 		$value = $this->options['service_url'] ?? '';
 		echo sprintf(
-			'<input type="url" id="service_url" name="%s_options[service_url]" value="%s" class="regular-text" />',
-			esc_attr( $this->option_prefix ),
+			'<input type="url" id="service_url" name="%s[service_url]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The base URL for the DOI registration service', 'edmp' ) . '</p>';
@@ -286,11 +269,24 @@ class EHRI_DOI_Metadata_Admin {
 	public function resolver_url_prefix_field_callback() {
 		$value = $this->options['resolver_url_prefix'] ?? 'https://doi.org/';
 		echo sprintf(
-			'<input type="url" id="resolver_url_prefix" name="%s_options[resolver_url_prefix]" value="%s" class="regular-text" />',
-			esc_attr( $this->option_prefix ),
+			'<input type="url" id="resolver_url_prefix" name="%s[resolver_url_prefix]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The base URL for resolving DOIs', 'edmp' ) . '</p>';
+	}
+
+	/**
+	 * Callback for citation resolver URL prefix field.
+	 */
+	public function citation_resolver_url_prefix_field_callback() {
+		$value = $this->options['citation_resolver_url_prefix'] ?? 'https://doi.org/';
+		echo sprintf(
+			'<input type="url" id="citation_resolver_url_prefix" name="%s[citation_resolver_url_prefix]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
+			esc_attr( $value )
+		);
+		echo '<p class="description">' . esc_html__( 'The base URL for resolving DOIs via the Citation widget', 'edmp' ) . '</p>';
 	}
 
 	/**
@@ -299,8 +295,8 @@ class EHRI_DOI_Metadata_Admin {
 	public function client_id_field_callback() {
 		$value = $this->options['client_id'] ?? '';
 		echo sprintf(
-			'<input type="text" id="client_id" name="%s_options[client_id]" value="%s" class="regular-text" />',
-			esc_attr( $this->option_prefix ),
+			'<input type="text" id="client_id" name="%s[client_id]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The client ID for the DOI service', 'edmp' ) . '</p>';
@@ -312,24 +308,11 @@ class EHRI_DOI_Metadata_Admin {
 	public function client_secret_field_callback() {
 		$value = $this->options['client_secret'] ?? '';
 		echo sprintf(
-			'<input type="password" id="client_secret" name="%s_options[client_secret]" value="%s" class="regular-text" />',
-			esc_attr( $this->option_prefix ),
+			'<input type="password" id="client_secret" name="%s[client_secret]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The secret key for the DOI service', 'edmp' ) . '</p>';
-	}
-
-	/**
-	 * Callback for the client ID field.
-	 */
-	public function fake_citation_doi_field_callback() {
-		$value = $this->options['fake_citation_doi'] ?? '';
-		echo sprintf(
-			'<input type="text" id="fake_citation_doi" name="%s_options[fake_citation_doi]" value="%s" class="regular-text" />',
-			esc_attr( $this->option_prefix ),
-			esc_attr( $value )
-		);
-		echo '<p class="description">' . esc_html__( 'A placeholder (real) DOI for testing the citation widget when using placeholder DOIs that don\'t resolve on https://doi.org/', 'edmp' ) . '</p>';
 	}
 
 	/**
@@ -379,6 +362,15 @@ class EHRI_DOI_Metadata_Admin {
 	 */
 	public function get_service_url(): string {
 		return $this->options['service_url'];
+	}
+
+	/**
+	 * Get the resolver URL prefix.
+	 *
+	 * @return string The URL prefix for resolving DOIs.
+	 */
+	public function get_resolver_url_prefix(): string {
+		return $this->options['resolver_url_prefix'];
 	}
 
 	/**
