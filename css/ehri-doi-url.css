@@ -1,14 +1,3 @@
-.doi-url-container {
-	display: flex;
-	align-items: center;
-	margin-bottom: 1rem;
-	gap: 0.5rem;
-}
-
-.doi-url-container {
-	font-size: var(--wp--preset--font-size--medium);
-}
-
 .doi-state-container {
 	display: inline-flex;
 	align-items: center;

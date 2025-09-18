@@ -112,12 +112,6 @@ class EHRI_DOI_Url_Widget extends WP_Widget {
 			<a href="<?php echo esc_attr( $this->resolver_url_prefix ); ?><?php echo esc_attr( $doi ); ?>" target="_blank">
 				<?php echo esc_attr( $this->resolver_url_prefix ); ?><?php echo esc_html( $doi ); ?>
 			</a>
-			<?php if ( is_user_logged_in() ) : ?>
-			<span class="doi-state-container doi-state-<?php echo esc_attr( $state ); ?>">
-				<span class="doi-state-icon"></span>
-				<span class="doi-state-text"><?php echo esc_html( $state ); ?></span>
-			</span>
-			<?php endif; ?>
 		</div>
 		<?php
 		echo $args['after_widget'];
