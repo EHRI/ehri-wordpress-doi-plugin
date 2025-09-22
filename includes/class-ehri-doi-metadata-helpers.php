@@ -10,6 +10,23 @@
  */
 class EHRI_DOI_Metadata_Helpers {
 	/**
+	 * Admin panel data helpers.
+	 *
+	 * @var EHRI_DOI_Metadata_Admin
+	 */
+	private EHRI_DOI_Metadata_Admin $admin;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param EHRI_DOI_Metadata_Admin $admin the admin instance.
+	 */
+	public function __construct( EHRI_DOI_Metadata_Admin $admin ) {
+		// Initialize admin panel.
+		$this->admin = $admin;
+	}
+
+	/**
 	 * Fetch titles for the post in all the languages for which
 	 * it is available (via Polylang, if installed).
 	 *
@@ -155,15 +172,52 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Fetch related resource URLs.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return array array of related type URLs
+	 */
+	public function get_related_urls( int $post_id ): array {
+		return array(
+			// TODO.
+		);
+	}
+
+	/**
 	 * Fetch related identifiers for the post.
 	 *
 	 * @param int $post_id the post ID.
-	 * @return array
+	 * @return array an array of related identifier arrays.
 	 */
 	public function get_related_identifiers( int $post_id ): array {
 		return array_merge(
 			$this->get_related_translations( $post_id ),
 			$this->get_related_versions( $post_id ),
+			$this->get_related_urls( $post_id ),
+		);
+	}
+
+	/**
+	 * Fetch related items for the post.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return array an array of related item arrays.
+	 */
+	public function get_related_items( int $post_id ): array {
+		return array(
+			array(
+				'titles'                => array(
+					array(
+						'title' => $this->admin->get_options()['publication_name'],
+					),
+				),
+				'relatedItemIdentifier' => array(
+					'relatedItemIdentifier'     => get_site_url(),
+					'relatedItemIdentifierType' => 'URL',
+				),
+				'relatedItemType'       => 'Other',
+				'relationType'          => 'IsPublishedIn',
+			),
 		);
 	}
 
@@ -240,6 +294,28 @@ class EHRI_DOI_Metadata_Helpers {
 			$authors[] = $author_data;
 		}
 		return $authors;
+	}
+
+	/**
+	 * Returns information about the current publisher.
+	 *
+	 * @return array|string an array of publisher information, or a simple string.
+	 */
+	public function get_publisher() {
+		$publisher_name = $this->admin->get_options()['publisher'];
+		$publisher_ror  = $this->admin->get_options()['publisher_ror'];
+
+		if ( ! empty( $publisher_ror ) ) {
+			return array(
+				'name'                      => $publisher_name,
+				'publisherIdentifier'       => $publisher_ror,
+				'publisherIdentifierScheme' => 'ROR',
+				'schemeUri'                 => 'https://ror.org/',
+				'lang'                      => 'en',
+			);
+		} else {
+			return $publisher_name;
+		}
 	}
 
 	/**
@@ -339,7 +415,7 @@ class EHRI_DOI_Metadata_Helpers {
 			}
 
 			if ( is_array( $value ) ) {
-				if ( ! empty( self::changed_fields( $existing[ $key ], $value ) ) ) {
+				if ( ! is_array( $existing[ $key ] ) || ! empty( self::changed_fields( $existing[ $key ], $value ) ) ) {
 					$changed[] = $key;
 				}
 			} else {

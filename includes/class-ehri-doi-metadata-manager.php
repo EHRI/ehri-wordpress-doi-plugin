@@ -59,7 +59,7 @@ class EHRI_DOI_Metadata_Manager {
 			$this->admin->get_client_id(),
 			$this->admin->get_client_secret()
 		);
-		$this->helpers    = new EHRI_DOI_Metadata_Helpers();
+		$this->helpers    = new EHRI_DOI_Metadata_Helpers( $this->admin );
 
 		// Register activation hook.
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
@@ -329,7 +329,7 @@ class EHRI_DOI_Metadata_Manager {
 			'titles'               => $this->helpers->get_title_info( $post_id ),
 			'descriptions'         => $this->helpers->get_description_info( $post_id ),
 			'creators'             => $this->helpers->get_author_info( $post_id ),
-			'publisher'            => $this->admin->get_options()['publisher'],
+			'publisher'            => $this->helpers->get_publisher(),
 			'publicationYear'      => $this->helpers->get_publication_year( $post_id ),
 			'dates'                => $this->helpers->get_date_info( $post_id ),
 			'alternateIdentifiers' => $this->helpers->get_alternative_identifier_info( $post_id ),
@@ -345,6 +345,7 @@ class EHRI_DOI_Metadata_Manager {
 			),
 			'language'             => $this->helpers->get_language_code( $post_id ),
 			'relatedIdentifiers'   => $this->helpers->get_related_identifiers( $post_id ),
+			'relatedItems'         => $this->helpers->get_related_items( $post_id ),
 			'version'              => $this->helpers->get_version_info( $post_id ),
 		);
 

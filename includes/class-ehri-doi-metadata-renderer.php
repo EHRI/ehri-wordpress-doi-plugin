@@ -74,7 +74,8 @@ class EHRI_DOI_Metadata_Renderer {
 		$html .= $this->render_alternate_identifiers();
 		$html .= $this->render_descriptions();
 		$html .= $this->render_subjects();
-		$html .= $this->render_related();
+		$html .= $this->render_related_identifiers();
+		$html .= $this->render_related_items();
 		$html .= $this->render_url();
 		$html .= $this->render_version();
 		$html .= '</div>';
@@ -246,12 +247,15 @@ class EHRI_DOI_Metadata_Renderer {
 	 * @return string HTML string of the rendered publisher.
 	 */
 	private function render_publishers(): string {
-		$publisher_obj = $this->metadata['publisher']['name'] ?? '';
-		$publisher     = empty( $publisher_obj ) ? ( $this->metadata['publisher'] ?? '' ) : '';
+		$publisher_obj  = $this->metadata['publisher'];
+		$publisher      = is_array( $publisher_obj ) ? ( $publisher_obj['name'] ?? '' ) : '';
+		$publisher_ror  = is_array( $publisher_obj ) ? ( $publisher_obj['publisherIdentifier'] ?? '' ) : '';
+		$full_publisher = empty( $publisher_ror ) ? $publisher : sprintf( '%s (%s)', $publisher, $publisher_ror );
+
 		return $this->render_section(
 			'publisher',
 			esc_html__( 'Publisher' ),
-			$publisher,
+			$full_publisher,
 			esc_html__( 'The publisher of the post as set in the DOI plugin settings.', 'edmp' )
 		);
 	}
@@ -454,7 +458,7 @@ class EHRI_DOI_Metadata_Renderer {
 	 *
 	 * @return string HTML string of the rendered related identifiers.
 	 */
-	private function render_related(): string {
+	private function render_related_identifiers(): string {
 		if ( $this->skip_field( $this->metadata, 'relatedIdentifiers' ) ) {
 			return '';
 		}
@@ -470,16 +474,16 @@ class EHRI_DOI_Metadata_Renderer {
 		);
 
 		$content = '<ul>' .
-			implode(
-				'',
-				array_map(
-					function ( $i ) {
-						return "<li>$i</li>";
-					},
-					$related_identifiers
-				)
-			) .
-			'</ul>';
+				implode(
+					'',
+					array_map(
+						function ( $i ) {
+							return "<li>$i</li>";
+						},
+						$related_identifiers
+					)
+				) .
+				'</ul>';
 		if ( empty( $related_identifiers ) ) {
 			$content = '&lt;empty&gt;';
 		}
@@ -489,6 +493,49 @@ class EHRI_DOI_Metadata_Renderer {
 			esc_html__( 'Related Identifiers', 'edmp' ),
 			$content,
 			esc_html__( 'Identifiers of items related to the post, if any.', 'edmp' )
+		);
+	}
+
+	/**
+	 * Renders the related items of the post.
+	 *
+	 * @return string HTML string of the rendered related items.
+	 */
+	private function render_related_items(): string {
+		if ( $this->skip_field( $this->metadata, 'relatedItems' ) ) {
+			return '';
+		}
+
+		$related_items = array_map(
+			function ( $item ) {
+				$item_type     = htmlspecialchars( $item['relatedItemType'] ?? '' );
+				$item_ident    = htmlspecialchars( $item['titles'][0]['title'] ?? '' );
+				$relation_type = ! empty( $item['relationType'] ) ? '<strong>[' . htmlspecialchars( $item['relationType'] ) . ']</strong> ' : '';
+				return "$relation_type $item_type: $item_ident";
+			},
+			$this->metadata['relatedItems']
+		);
+
+		$content = '<ul>' .
+			implode(
+				'',
+				array_map(
+					function ( $i ) {
+						return "<li>$i</li>";
+					},
+					$related_items
+				)
+			) .
+			'</ul>';
+		if ( empty( $related_items ) ) {
+			$content = '&lt;empty&gt;';
+		}
+
+		return $this->render_section(
+			'relatedItems',
+			esc_html__( 'Related Items', 'edmp' ),
+			$content,
+			esc_html__( 'Items related to the post, if any.', 'edmp' )
 		);
 	}
 

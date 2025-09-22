@@ -51,6 +51,8 @@ class EHRI_DOI_Metadata_Admin {
 			EHRI_DOI_PLUGIN_OPTION_PREFIX,
 			array(
 				'publisher'           => '',
+				'publisher_ror'       => '',
+				'publication_name'    => get_bloginfo( 'name' ),
 				'service_url'         => 'https://api.datacite.org/dois',
 				'resolver_url_prefix' => 'https://doi.org/',
 				'prefix'              => '', // Default DOI prefix.
@@ -96,6 +98,22 @@ class EHRI_DOI_Metadata_Admin {
 			'publisher',
 			__( 'Publisher Name', 'edmp' ),
 			array( $this, 'publisher_field_callback' ),
+			'ehri-doi-metadata-settings',
+			'doi_publisher_section'
+		);
+
+		add_settings_field(
+			'publisher_ror',
+			__( 'Publisher Research Organisation Registry (ROR) URI', 'edmp' ),
+			array( $this, 'publisher_ror_field_callback' ),
+			'ehri-doi-metadata-settings',
+			'doi_publisher_section'
+		);
+
+		add_settings_field(
+			'publication_name',
+			__( 'Name of the current site or publication', 'edmp' ),
+			array( $this, 'publication_name_field_callback' ),
 			'ehri-doi-metadata-settings',
 			'doi_publisher_section'
 		);
@@ -188,6 +206,12 @@ class EHRI_DOI_Metadata_Admin {
 		// Sanitize publisher.
 		$output['publisher'] = sanitize_text_field( $input['publisher'] );
 
+		// Sanitize publisher ROR.
+		$output['publisher_ror'] = esc_url_raw( $input['publisher_ror'] );
+
+		// Sanitize publication name.
+		$output['publication_name'] = sanitize_text_field( $input['publication_name'] );
+
 		// Sanitize DOI prefix.
 		$output['prefix'] = sanitize_text_field( $input['prefix'] );
 
@@ -235,6 +259,32 @@ class EHRI_DOI_Metadata_Admin {
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The name of the organization or publisher responsible for issuing DOIs.', 'edmp' ) . '</p>';
+	}
+
+	/**
+	 * Callback for the publisher field.
+	 */
+	public function publisher_ror_field_callback() {
+		$value = $this->options['publisher_ror'] ?? '';
+		echo sprintf(
+			'<input type="text" id="publisher_ror" name="%s[publisher_ror]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
+			esc_attr( $value )
+		);
+		echo '<p class="description">' . esc_html__( 'The (optional) Research Organisation Registry (ROR) URI for the publisher responsible for issuing DOIs.', 'edmp' ) . '</p>';
+	}
+
+	/**
+	 * Callback for the publication name.
+	 */
+	public function publication_name_field_callback() {
+		$value = $this->options['publication_name'] ?? '';
+		echo sprintf(
+			'<input type="text" id="publication_name" name="%s[publication_name]" value="%s" class="regular-text" />',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
+			esc_attr( $value )
+		);
+		echo '<p class="description">' . esc_html__( 'The name of the (current) site or publication to which the published material belongs.', 'edmp' ) . '</p>';
 	}
 
 	/**
