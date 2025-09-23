@@ -44,26 +44,22 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
-	 * Get the description for the post in all the languages for which
-	 * it is available (via Polylang, if installed).
+	 * Get the description for the post from the `doi_description`
+	 * meta field, if it is populated.
 	 *
 	 * @param int $post_id the post ID.
 	 * @return array
 	 */
 	public function get_description_info( int $post_id ): array {
 
-		$desc_text = sanitize_text_field( get_post_meta( $post_id, 'doi_description', true ) );
-		if ( ! $desc_text ) {
-			$desc_text = $this->clean_text( get_the_excerpt( $post_id ) );
+		$descriptions = array();
+		$desc_text    = sanitize_text_field( get_post_meta( $post_id, 'doi_description', true ) );
+		if ( $desc_text ) {
+			$descriptions[] = array(
+				'description' => $desc_text,
+			);
 		}
-
-		$desc = array(
-			'description' => $desc_text,
-		);
-		if ( function_exists( 'pll_get_post_language' ) ) {
-			$desc['lang'] = pll_get_post_language( $post_id );
-		}
-		return array( $desc );
+		return $descriptions;
 	}
 
 	/**
