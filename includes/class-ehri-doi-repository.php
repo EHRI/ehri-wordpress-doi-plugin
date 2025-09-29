@@ -74,12 +74,13 @@ class EHRI_DOI_Repository {
 			)
 		);
 
+		$this->check_auth( $api_response, $doi );
 		// We're normally expecting a 200 response, but we might get 410 if the
 		// item exists but has been removed. In that case we *should* still receive
 		// a valid response body.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || ( 200 !== $code && 410 !== $code ) ) {
-			if ( 'http_request_failed' === $api_response->get_error_code() ) {
+			if ( is_wp_error( $api_response ) && ( 'http_request_failed' === $api_response->get_error_code() ) ) {
 				throw new EHRI_DOI_Repository_Exception(
 					sprintf( 'Unable to fetch DOI metadata: %s. Please check the URL is correct.', $api_response->get_error_message() ),
 					500,
@@ -89,7 +90,7 @@ class EHRI_DOI_Repository {
 			} else {
 				$error = wp_remote_retrieve_body( $api_response );
 				throw new EHRI_DOI_Repository_Exception(
-					sprintf( 'Unable to fetch DOI metadata: %s.', $error ),
+					sprintf( 'Unable to fetch DOI metadata: [%s] %s.', $code, $error ),
 					$code,
 					null,
 					$doi
@@ -126,11 +127,12 @@ class EHRI_DOI_Repository {
 				'body'    => wp_json_encode( $metadata ),
 			)
 		);
+		$this->check_auth( $api_response );
 		// Ensure we get a 201 response.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 201 !== $code ) {
 			$error = wp_remote_retrieve_body( $api_response );
-			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error creating DOI: %s', $error ), $code, null, '' );
+			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error creating DOI [%s]: %s', $code, $error ), $code, null, '' );
 		}
 		$response_body = wp_remote_retrieve_body( $api_response );
 
@@ -159,11 +161,12 @@ class EHRI_DOI_Repository {
 				'body'    => wp_json_encode( $metadata ),
 			)
 		);
+		$this->check_auth( $api_response, $doi );
 		// Ensure we get a 200 response.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 200 !== $code ) {
 			$error = wp_remote_retrieve_body( $api_response );
-			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error updating DOI: %s', $error ), $code, null, $doi );
+			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error updating DOI [%s]: %s', $code, $error ), $code, null, $doi );
 		}
 		$response_body = wp_remote_retrieve_body( $api_response );
 
@@ -189,14 +192,31 @@ class EHRI_DOI_Repository {
 				),
 			)
 		);
+		$this->check_auth( $api_response, $doi );
 		// Ensure we get a 204 response.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 204 !== $code ) {
 			$error = wp_remote_retrieve_body( $api_response );
-			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error deleting DOI: %s', $error ), $code, null, $doi );
+			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error deleting DOI [%s]: %s', $code, $error ), $code, null, $doi );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Check a response for authentication errors.
+	 *
+	 * @param array|WP_Error $response the remote response.
+	 * @param string|null    $doi the optional DOI.
+	 *
+	 * @throws EHRI_DOI_Repository_Exception If there is an authentication error.
+	 * @return void
+	 */
+	private function check_auth( $response, $doi = null ) {
+		$code = wp_remote_retrieve_response_code( $response );
+		if ( 401 === $code ) {
+			throw new EHRI_DOI_Repository_Exception( sprintf( 'Authentication error [%s]', $code ), $code, null, $doi );
+		}
 	}
 
 	/**

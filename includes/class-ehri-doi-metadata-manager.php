@@ -476,7 +476,11 @@ class EHRI_DOI_Metadata_Manager {
 			$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
 			$doi_state      = $doi_attributes['state'] ?? 'draft';
 			$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
-			// Because we just created the DOI, there are no old metadata to compare against.
+
+			// Because we have just created the DOI, add it's URL to the original data.
+			$post_attributes['url'] = $doi_attributes['url'];
+
+			// There are no 'old' metadata to compare against yet.
 			// However, if we get changes here it will show a bug in the plugin.
 			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes );
 
@@ -569,7 +573,7 @@ class EHRI_DOI_Metadata_Manager {
 			EHRI_DOI_Events::doi_api_error( 'update', $doi, $post_id, $e->getMessage(), $e->getCode() );
 			EHRI_DOI_Events::after_doi_operation( 'update', $doi, $post_id, false, array( 'error' => $e->getMessage() ) );
 
-			wp_send_json_error( 'Error updating DOI metadata' );
+			wp_send_json_error( sprintf( 'Error updating DOI metadata [status: %s]', $e->getCode() ) );
 		}
 	}
 

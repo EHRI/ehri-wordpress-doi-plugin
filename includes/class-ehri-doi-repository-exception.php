@@ -19,7 +19,7 @@ class EHRI_DOI_Repository_Exception extends Exception {
 	 *
 	 * @var string|null
 	 */
-	private string $doi;
+	private ?string $doi;
 
 	/**
 	 * Constructor.

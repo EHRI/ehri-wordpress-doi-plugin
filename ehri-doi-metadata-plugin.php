@@ -25,6 +25,7 @@ const EHRI_DOI_META_KEY                  = '_doi';
 const EHRI_DOI_STATE_META_KEY            = '_doi_state';
 const EHRI_DOI_PREVIOUS_VERSION_META_KEY = '_previous_version_of';
 const EHRI_DOI_PLUGIN_OPTION_PREFIX      = '_ehri_doi_plugin_options';
+const EHRI_DOI_PLUGIN_DEBUG              = false;
 
 // Include the metadata plugin class.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-metadata-manager.php';
@@ -43,7 +44,7 @@ require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-url-widget.php';
 
 // If in DEBUG mode, print the events on the log.
 // phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log
-if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) || EHRI_DOI_PLUGIN_DEBUG ) {
 	add_action(
 		'ehri_doi_created',
 		function ( $doi, $post_id, $metadata, $state ) {
