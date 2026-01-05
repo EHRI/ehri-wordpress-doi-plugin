@@ -449,7 +449,7 @@ class EHRI_DOI_Metadata_Helpers {
 	 */
 	private function clean_text( string $text ): string {
 		$filtered = wp_filter_nohtml_kses( $text );
-		return html_entity_decode( $filtered, ENT_QUOTES, 'UTF-8' );
+		return wp_unslash( html_entity_decode( $filtered, ENT_QUOTES, 'UTF-8' ) );
 	}
 
 	/**
