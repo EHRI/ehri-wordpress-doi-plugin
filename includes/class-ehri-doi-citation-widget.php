@@ -23,7 +23,7 @@ add_action( 'widgets_init', 'register_citation_widget' );
  */
 function enqueue_citation_js() {
 	wp_enqueue_style( 'ehri-doi-citation-widget-css', plugins_url( 'css/ehri-doi-citation-widget.css', EHRI_DOI_PLUGIN_PATH ), array(), '1.0.0' );
-	wp_enqueue_script( 'citation-js', 'https://cdn.jsdelivr.net/npm/citation-js@0.7.18/build/citation.min.js', array(), '0.7.18', true );
+	wp_enqueue_script( 'citation-js', 'https://cdn.jsdelivr.net/npm/citation-js@0.7.22/build/citation.min.js', array(), '0.7.22', true );
 	wp_enqueue_script( 'ehri-doi-citation-widget-js', plugin_dir_url( EHRI_DOI_PLUGIN_PATH ) . 'js/ehri-doi-citation-widget.js', array( 'jquery', 'citation-js' ), '1.0', true );
 	wp_localize_script(
 		'ehri-doi-citation-widget-js',

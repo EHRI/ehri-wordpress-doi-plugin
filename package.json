@@ -6,6 +6,6 @@
 		"@wordpress/env": "^10.20.0"
 	},
 	"dependencies": {
-		"citation-js": "^0.7.18"
+		"citation-js": "^0.7.22"
 	}
 }
