@@ -27,6 +27,38 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Get an array of DataCite DOI metadata.
+	 *
+	 * @param int $post_id the post ID.
+	 * @return array
+	 */
+	public function get_doi_data( int $post_id ): array {
+		return array(
+			'titles'               => $this->get_title_info( $post_id ),
+			'descriptions'         => $this->get_description_info( $post_id ),
+			'creators'             => $this->get_author_info( $post_id ),
+			'publisher'            => $this->get_publisher(),
+			'publicationYear'      => $this->get_publication_year( $post_id ),
+			'dates'                => $this->get_date_info( $post_id ),
+			'alternateIdentifiers' => $this->get_alternative_identifier_info( $post_id ),
+			'formats'              => array( 'text/html' ),
+			'subjects'             => $this->get_subject_info( $post_id ),
+			'types'                => array(
+				'ris'                 => 'BLOG',
+				'citeproc'            => 'webpage',
+				'bibtex'              => 'misc',
+				'schemaOrg'           => 'BlogPosting',
+				'resourceType'        => 'Blog Post',
+				'resourceTypeGeneral' => 'Text',
+			),
+			'language'             => $this->get_language_code( $post_id ),
+			'relatedIdentifiers'   => $this->get_related_identifiers( $post_id ),
+			'relatedItems'         => $this->get_related_items( $post_id ),
+			'version'              => $this->get_version_info( $post_id ),
+		);
+	}
+
+	/**
 	 * Fetch titles for the post in all the languages for which
 	 * it is available (via Polylang, if installed).
 	 *

@@ -325,29 +325,7 @@ class EHRI_DOI_Metadata_Manager {
 	 * @return void|array
 	 */
 	private function initialize_doi_metadata( int $post_id ): array {
-		$data = array(
-			'titles'               => $this->helpers->get_title_info( $post_id ),
-			'descriptions'         => $this->helpers->get_description_info( $post_id ),
-			'creators'             => $this->helpers->get_author_info( $post_id ),
-			'publisher'            => $this->helpers->get_publisher(),
-			'publicationYear'      => $this->helpers->get_publication_year( $post_id ),
-			'dates'                => $this->helpers->get_date_info( $post_id ),
-			'alternateIdentifiers' => $this->helpers->get_alternative_identifier_info( $post_id ),
-			'formats'              => array( 'text/html' ),
-			'subjects'             => $this->helpers->get_subject_info( $post_id ),
-			'types'                => array(
-				'ris'                 => 'BLOG',
-				'citeproc'            => 'webpage',
-				'bibtex'              => 'misc',
-				'schemaOrg'           => 'BlogPosting',
-				'resourceType'        => 'Blog Post',
-				'resourceTypeGeneral' => 'Text',
-			),
-			'language'             => $this->helpers->get_language_code( $post_id ),
-			'relatedIdentifiers'   => $this->helpers->get_related_identifiers( $post_id ),
-			'relatedItems'         => $this->helpers->get_related_items( $post_id ),
-			'version'              => $this->helpers->get_version_info( $post_id ),
-		);
+		$data = $this->helpers->get_doi_data( $post_id );
 
 		// If we have a DOI for this post already, add the URL to the data based
 		// on the service resolver URL.

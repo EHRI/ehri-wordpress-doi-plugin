@@ -102,6 +102,46 @@ if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) || EHRI_DOI_PLUGIN_DEBUG ) {
 // phpcs:enable WordPress.PHP.DevelopmentFunctions.error_log_error_log
 
 /**
+ * CLI function for listing posts with registered DOIs.
+ *
+ * @return void
+ */
+function ehri_doi_list_doi_posts() {
+	$args = array(
+		'post_type'      => 'post',
+		'posts_per_page' => -1,
+		// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+		'meta_query'     => array(
+			array(
+				'key'     => EHRI_DOI_META_KEY,
+				'compare' => 'EXISTS',
+			),
+		),
+	);
+
+	$posts = get_posts( $args );
+
+	foreach ( $posts as $post ) {
+		echo esc_html( $post->ID ) . "\n";
+	}
+}
+
+/**
+ * Output post DOI info, as JSON.
+ *
+ * @param int $post_id the post ID.
+ *
+ * @return void
+ */
+function ehri_doi_show_doi_info( int $post_id ) {
+	$doi_metadata_admin   = new EHRI_DOI_Metadata_Admin();
+	$doi_metadata_manager = new EHRI_DOI_Metadata_Helpers( $doi_metadata_admin );
+	$data                 = $doi_metadata_manager->get_doi_data( $post_id );
+	echo wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+	echo "\n";
+}
+
+/**
  * Activate the EHRI DOI Metadata & Version Plugins.
  */
 function ehri_doi_activate_plugins() {
