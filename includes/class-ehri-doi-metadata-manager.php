@@ -64,9 +64,6 @@ class EHRI_DOI_Metadata_Manager {
 		// Add meta box to post edit screen.
 		add_action( 'add_meta_boxes', array( $this, 'add_doi_meta_box' ) );
 
-		// Save post meta.
-		add_action( 'save_post', array( $this, 'save_meta' ) );
-
 		// Register scripts and styles.
 		add_action( 'admin_enqueue_scripts', array( $this, 'register_assets' ) );
 
@@ -168,7 +165,6 @@ class EHRI_DOI_Metadata_Manager {
 		$doi   = get_post_meta( $post->ID, EHRI_DOI_META_KEY, true );
 		$state = get_post_meta( $post->ID, EHRI_DOI_STATE_META_KEY, true );
 
-		wp_nonce_field( 'doi_metadata_nonce', 'doi_metadata_nonce' );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo self::get_meta_box_html( $doi, $state );
 	}
@@ -204,27 +200,6 @@ class EHRI_DOI_Metadata_Manager {
 		</div>
 		<?php
 		return ob_get_clean();
-	}
-
-	/**
-	 * Save the DOI metadata for the post.
-	 *
-	 * @param int $post_id The post ID.
-	 *
-	 * @return void
-	 */
-	public function save_meta( int $post_id ) {
-		// Verify nonce and user permissions.
-		if ( ! isset( $_POST['doi_metadata_nonce'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['doi_metadata_nonce'] ) ), 'doi_metadata_nonce' ) ||
-			! current_user_can( 'edit_post', $post_id ) ) {
-			return;
-		}
-
-		// Save simple DOI field (full metadata saved via AJAX).
-		if ( isset( $_POST['doi_field'] ) ) {
-			update_post_meta( $post_id, EHRI_DOI_META_KEY, sanitize_text_field( wp_unslash( $_POST['doi_field'] ) ) );
-		}
 	}
 
 	/**
