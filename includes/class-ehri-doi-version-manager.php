@@ -216,6 +216,9 @@ class EHRI_DOI_Version_Manager {
 
 		$new_version_id = isset( $_POST['new_version_id'] ) ? intval( $_POST['new_version_id'] ) : 0;
 		if ( $new_version_id && $new_version_id > 0 ) {
+			if ( $new_version_id === $post_id || ! get_post( $new_version_id ) ) {
+				wp_send_json_error( 'Invalid replacement post' );
+			}
 			update_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY, $new_version_id );
 			EHRI_DOI_Events::post_version_set( $post_id, $new_version_id );
 			wp_send_json_success(

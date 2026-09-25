@@ -92,8 +92,15 @@ class EHRI_DOI_Metadata_Helpers {
 		$version = 1;
 		// Check if the post has a previous version.
 		$this_post = $post_id;
+		// Guard against circular '_previous_version_of' references, which would
+		// otherwise cause this loop to run forever.
+		$seen = array( $post_id => true );
 		// phpcs:ignore WordPress.CodeAnalysis.AssignmentInCondition
 		while ( $previous = $this->get_previous_version( $this_post ) ) {
+			if ( isset( $seen[ $previous ] ) ) {
+				break;
+			}
+			$seen[ $previous ] = true;
 			$version++;
 			$this_post = $previous;
 		}
