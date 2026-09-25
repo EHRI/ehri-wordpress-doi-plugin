@@ -61,9 +61,6 @@ class EHRI_DOI_Metadata_Manager {
 		);
 		$this->helpers    = new EHRI_DOI_Metadata_Helpers( $this->admin );
 
-		// Register activation hook.
-		register_activation_hook( __FILE__, array( $this, 'activate' ) );
-
 		// Add meta box to post edit screen.
 		add_action( 'add_meta_boxes', array( $this, 'add_doi_meta_box' ) );
 
