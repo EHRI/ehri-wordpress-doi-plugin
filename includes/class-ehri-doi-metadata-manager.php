@@ -520,7 +520,7 @@ class EHRI_DOI_Metadata_Manager {
 			// Save the updated post info.
 			$doi_attributes = $doi_data['data']['attributes'];
 			$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
-			$doi_state      = $doi_attributes['state'];
+			$doi_state      = $doi_attributes['state'] ?? 'draft';
 			$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
 
 			// Calculate changed fields and fire events.
@@ -662,7 +662,7 @@ class EHRI_DOI_Metadata_Manager {
 				$doi_data       = $this->repository->update_doi( $doi, $payload );
 				$doi_attributes = $doi_data['data']['attributes'];
 				$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
-				$doi_state      = $doi_attributes['state'];
+				$doi_state      = $doi_attributes['state'] ?? 'draft';
 				$this->save_doi_post_metadata( $post_id, $doi, $doi_state );
 
 				// Fire state change and success events.
