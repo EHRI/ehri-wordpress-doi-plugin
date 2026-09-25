@@ -213,7 +213,10 @@ class EHRI_DOI_Version_Manager {
 
 		$new_version_id = isset( $_POST['new_version_id'] ) ? intval( $_POST['new_version_id'] ) : 0;
 		if ( $new_version_id && $new_version_id > 0 ) {
-			if ( $new_version_id === $post_id || ! get_post( $new_version_id ) ) {
+			$target = get_post( $new_version_id );
+			// Restrict to the same set of posts offered in the selection dropdown
+			// (see ajax_open_doi_version_modal()): published posts only.
+			if ( $new_version_id === $post_id || ! $target || 'post' !== $target->post_type || 'publish' !== $target->post_status ) {
 				wp_send_json_error( 'Invalid replacement post' );
 			}
 			update_post_meta( $post_id, EHRI_DOI_PREVIOUS_VERSION_META_KEY, $new_version_id );
