@@ -22,9 +22,6 @@ class EHRI_DOI_Version_Manager {
 	 * Constructor.
 	 */
 	public function __construct() {
-		// Register activation hook.
-		register_activation_hook( __FILE__, array( $this, 'activate' ) );
-
 		// Add meta box to post edit screen.
 		add_action( 'add_meta_boxes', array( $this, 'add_doi_version_meta_box' ) );
 
