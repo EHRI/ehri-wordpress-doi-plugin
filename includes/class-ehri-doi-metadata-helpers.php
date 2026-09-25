@@ -268,13 +268,14 @@ class EHRI_DOI_Metadata_Helpers {
 				$authors[] = $author_data;
 			}
 		} else {
-			$author = get_the_author_meta( 'display_name', $post_id );
+			$post_author_id = get_post( $post_id )->post_author;
+			$author         = get_the_author_meta( 'display_name', $post_author_id );
 			// Hacky way to split first and last name.
 			$parts       = explode( ' ', $author, 2 );
-			$orcid       = get_the_author_meta( 'orcid', $post_id );
+			$orcid       = get_the_author_meta( 'orcid', $post_author_id );
 			$author_data = array(
 				'givenName'       => $parts[0],
-				'familyName'      => $parts[1],
+				'familyName'      => $parts[1] ?? '',
 				'name'            => $author,
 				'nameIdentifiers' => array(),
 			);
