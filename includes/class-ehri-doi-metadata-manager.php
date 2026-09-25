@@ -380,6 +380,9 @@ class EHRI_DOI_Metadata_Manager {
 		}
 
 		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
+		if ( empty( $doi ) ) {
+			wp_send_json_error( 'No DOI found for this post' );
+		}
 		$this->delete_doi( $post_id, $doi );
 	}
 
