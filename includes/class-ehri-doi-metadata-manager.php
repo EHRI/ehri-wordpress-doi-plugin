@@ -618,6 +618,16 @@ class EHRI_DOI_Metadata_Manager {
 			wp_send_json_error( 'Permission denied' );
 		}
 
+		// The 'publish' event makes the DOI's metadata publicly findable/searchable
+		// at DataCite, so refuse to do this while the underlying post itself isn't
+		// published, to avoid disclosing its title/abstract ahead of time.
+		if ( 'publish' === $event ) {
+			$post = get_post( $post_id );
+			if ( ! $post || 'publish' !== $post->post_status ) {
+				wp_send_json_error( 'Cannot make the DOI findable while the post is not published' );
+			}
+		}
+
 		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
 		if ( ! empty( $doi ) ) {
 

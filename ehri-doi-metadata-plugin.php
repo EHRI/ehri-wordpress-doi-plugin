@@ -101,15 +101,17 @@ if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) || EHRI_DOI_PLUGIN_DEBUG ) {
 }
 // phpcs:enable WordPress.PHP.DevelopmentFunctions.error_log_error_log
 
-/**
- * Activate the EHRI DOI Metadata & Version Plugins.
- */
-function ehri_doi_activate_plugins() {
-	$doi_metadata_manager = new EHRI_DOI_Metadata_Manager();
-	$doi_metadata_manager->activate();
+// Instantiate the plugin classes. This registers their hooks (meta boxes,
+// AJAX handlers, admin settings page, etc.) on every page load.
+$doi_metadata_manager = new EHRI_DOI_Metadata_Manager();
+$doi_version_manager  = new EHRI_DOI_Version_Manager();
 
-	$doi_version_manager = new EHRI_DOI_Version_Manager();
-	$doi_version_manager->activate();
-}
-
-ehri_doi_activate_plugins();
+// Run activation logic only once, when the plugin is actually activated
+// (as opposed to on every page load).
+register_activation_hook(
+	__FILE__,
+	function () use ( $doi_metadata_manager, $doi_version_manager ) {
+		$doi_metadata_manager->activate();
+		$doi_version_manager->activate();
+	}
+);
