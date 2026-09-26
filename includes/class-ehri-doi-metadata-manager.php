@@ -624,11 +624,8 @@ class EHRI_DOI_Metadata_Manager {
 		// The 'publish' event makes the DOI's metadata publicly findable/searchable
 		// at DataCite, so refuse to do this while the underlying post itself isn't
 		// published, to avoid disclosing its title/abstract ahead of time.
-		if ( 'publish' === $event ) {
-			$post = get_post( $post_id );
-			if ( ! $post || 'publish' !== $post->post_status ) {
-				wp_send_json_error( 'Cannot make the DOI findable while the post is not published' );
-			}
+		if ( 'publish' === $event && ! EHRI_DOI_Metadata_Helpers::is_post_published( get_post( $post_id ) ) ) {
+			wp_send_json_error( 'Cannot make the DOI findable while the post is not published' );
 		}
 
 		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );

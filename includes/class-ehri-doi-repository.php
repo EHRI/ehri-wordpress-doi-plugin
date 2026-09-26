@@ -88,7 +88,7 @@ class EHRI_DOI_Repository {
 					$doi
 				);
 			} else {
-				$error = wp_remote_retrieve_body( $api_response );
+				$error = $this->get_response_error( $api_response );
 				throw new EHRI_DOI_Repository_Exception(
 					sprintf( 'Unable to fetch DOI metadata: [%s] %s.', $code, $error ),
 					$code,
@@ -131,7 +131,7 @@ class EHRI_DOI_Repository {
 		// Ensure we get a 201 response.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 201 !== $code ) {
-			$error = is_wp_error( $api_response ) ? $api_response->get_error_message() : wp_remote_retrieve_body( $api_response );
+			$error = $this->get_response_error( $api_response );
 			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error creating DOI [%s]: %s', $code, $error ), $code, null, '' );
 		}
 		$response_body = wp_remote_retrieve_body( $api_response );
@@ -165,7 +165,7 @@ class EHRI_DOI_Repository {
 		// Ensure we get a 200 response.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 200 !== $code ) {
-			$error = is_wp_error( $api_response ) ? $api_response->get_error_message() : wp_remote_retrieve_body( $api_response );
+			$error = $this->get_response_error( $api_response );
 			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error updating DOI [%s]: %s', $code, $error ), $code, null, $doi );
 		}
 		$response_body = wp_remote_retrieve_body( $api_response );
@@ -196,11 +196,24 @@ class EHRI_DOI_Repository {
 		// Ensure we get a 204 response.
 		$code = wp_remote_retrieve_response_code( $api_response );
 		if ( is_wp_error( $api_response ) || 204 !== $code ) {
-			$error = is_wp_error( $api_response ) ? $api_response->get_error_message() : wp_remote_retrieve_body( $api_response );
+			$error = $this->get_response_error( $api_response );
 			throw new EHRI_DOI_Repository_Exception( sprintf( 'Error deleting DOI [%s]: %s', $code, $error ), $code, null, $doi );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Extract a human-readable error message from a remote API response,
+	 * whether it failed at the transport level (WP_Error) or returned an
+	 * unexpected HTTP response.
+	 *
+	 * @param array|WP_Error $response the remote response.
+	 *
+	 * @return string
+	 */
+	private function get_response_error( $response ): string {
+		return is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_body( $response );
 	}
 
 	/**

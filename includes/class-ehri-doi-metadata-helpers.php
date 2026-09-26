@@ -331,11 +331,21 @@ class EHRI_DOI_Metadata_Helpers {
 	 */
 	public function get_publication_year( int $post_id ): int {
 		$post = get_post( $post_id );
-		if ( 'publish' === $post->post_status ) {
+		if ( self::is_post_published( $post ) ) {
 			return (int) get_the_date( 'Y', $post );
 		} else {
 			return (int) gmdate( 'Y' );
 		}
+	}
+
+	/**
+	 * Determine whether the given post is published.
+	 *
+	 * @param WP_Post|null $post the post object, or null if it could not be found.
+	 * @return bool
+	 */
+	public static function is_post_published( ?WP_Post $post ): bool {
+		return $post instanceof WP_Post && 'publish' === $post->post_status;
 	}
 
 	/**
@@ -349,7 +359,7 @@ class EHRI_DOI_Metadata_Helpers {
 		$post = get_post( $post_id );
 
 		$dates = array();
-		if ( 'publish' === $post->post_status ) {
+		if ( self::is_post_published( $post ) ) {
 			$pub = get_the_date( 'Y-m-d', $post );
 			if ( $pub ) {
 				$dates[] = array(
