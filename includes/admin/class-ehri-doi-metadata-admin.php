@@ -26,14 +26,15 @@ class EHRI_DOI_Metadata_Admin {
 		$this->options = get_option(
 			EHRI_DOI_PLUGIN_OPTION_PREFIX,
 			array(
-				'publisher'           => '',
-				'publisher_ror'       => '',
-				'publication_name'    => get_bloginfo( 'name' ),
-				'service_url'         => 'https://api.datacite.org/dois',
-				'resolver_url_prefix' => 'https://doi.org/',
-				'prefix'              => '', // Default DOI prefix.
-				'client_id'           => '',
-				'client_secret'       => '',
+				'publisher'                   => '',
+				'publisher_ror'               => '',
+				'publication_name'            => get_bloginfo( 'name' ),
+				'service_url'                 => 'https://api.datacite.org/dois',
+				'service_url_is_landing_page' => false,
+				'resolver_url_prefix'         => 'https://doi.org/',
+				'prefix'                      => '', // Default DOI prefix.
+				'client_id'                   => '',
+				'client_secret'               => '',
 			)
 		);
 	}
@@ -148,6 +149,14 @@ class EHRI_DOI_Metadata_Admin {
 		);
 
 		add_settings_field(
+			'service_url_is_landing_page',
+			__( 'DOI Service Provides Landing Page', 'edmp' ),
+			array( $this, 'service_url_is_landing_page_field_callback' ),
+			'ehri-doi-metadata-settings',
+			'doi_provider_section'
+		);
+
+		add_settings_field(
 			'resolver_url_prefix',
 			__( 'Resolver URL Prefix', 'edmp' ),
 			array( $this, 'resolver_url_prefix_field_callback' ),
@@ -222,6 +231,7 @@ class EHRI_DOI_Metadata_Admin {
 
 		// Sanitize provider URLs.
 		$output['service_url']                  = esc_url_raw( $input['service_url'] );
+		$output['service_url_is_landing_page']  = ! empty( $input['service_url_is_landing_page'] );
 		$output['resolver_url_prefix']          = esc_url_raw( $input['resolver_url_prefix'] );
 		$output['citation_resolver_url_prefix'] = esc_url_raw( $input['citation_resolver_url_prefix'] );
 
@@ -316,6 +326,20 @@ class EHRI_DOI_Metadata_Admin {
 			esc_attr( $value )
 		);
 		echo '<p class="description">' . esc_html__( 'The base URL for the DOI registration service', 'edmp' ) . '</p>';
+	}
+
+	/**
+	 * Callback for the "service URL is landing page" field.
+	 */
+	public function service_url_is_landing_page_field_callback() {
+		$checked = ! empty( $this->options['service_url_is_landing_page'] );
+		echo sprintf(
+			'<label><input type="checkbox" id="service_url_is_landing_page" name="%s[service_url_is_landing_page]" value="1" %s /> %s</label>',
+			esc_attr( EHRI_DOI_PLUGIN_OPTION_PREFIX ),
+			checked( $checked, true, false ),
+			esc_html__( 'The DOI Registration Service above also serves a public landing page for each DOI', 'edmp' )
+		);
+		echo '<p class="description">' . esc_html__( 'Enable this if the registration service is a proxy that also resolves DOIs to a landing page (at <service URL>/<DOI>). When disabled, DOIs resolve directly to the WordPress post.', 'edmp' ) . '</p>';
 	}
 
 	/**
@@ -417,6 +441,15 @@ class EHRI_DOI_Metadata_Admin {
 	 */
 	public function get_service_url(): string {
 		return $this->options['service_url'];
+	}
+
+	/**
+	 * Whether the registration service also serves a landing page per DOI.
+	 *
+	 * @return bool
+	 */
+	public function service_url_is_landing_page(): bool {
+		return ! empty( $this->options['service_url_is_landing_page'] );
 	}
 
 	/**
