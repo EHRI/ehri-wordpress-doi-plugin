@@ -101,10 +101,12 @@ if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) || EHRI_DOI_PLUGIN_DEBUG ) {
 }
 // phpcs:enable WordPress.PHP.DevelopmentFunctions.error_log_error_log
 
-// Instantiate the plugin classes. This registers their hooks (meta boxes,
-// AJAX handlers, admin settings page, etc.) on every page load.
+// Instantiate the plugin classes and wire them into WordPress.
 $doi_metadata_manager = new EHRI_DOI_Metadata_Manager();
 $doi_version_manager  = new EHRI_DOI_Version_Manager();
+
+$doi_metadata_manager->register();
+$doi_version_manager->register();
 
 // Run activation logic only once, when the plugin is actually activated
 // (as opposed to on every page load).

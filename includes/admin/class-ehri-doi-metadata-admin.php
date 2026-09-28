@@ -20,10 +20,30 @@ class EHRI_DOI_Metadata_Admin {
 
 	/**
 	 * Constructor.
-	 *
-	 * Initializes the admin settings page and registers the settings.
 	 */
 	public function __construct() {
+		// Load options.
+		$this->options = get_option(
+			EHRI_DOI_PLUGIN_OPTION_PREFIX,
+			array(
+				'publisher'           => '',
+				'publisher_ror'       => '',
+				'publication_name'    => get_bloginfo( 'name' ),
+				'service_url'         => 'https://api.datacite.org/dois',
+				'resolver_url_prefix' => 'https://doi.org/',
+				'prefix'              => '', // Default DOI prefix.
+				'client_id'           => '',
+				'client_secret'       => '',
+			)
+		);
+	}
+
+	/**
+	 * Register WordPress hooks.
+	 *
+	 * @return void
+	 */
+	public function register(): void {
 		// Add admin menu.
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 
@@ -45,21 +65,6 @@ class EHRI_DOI_Metadata_Admin {
 
 		// Add DOI and DOI state columns to the post list.
 		$this->setup_post_list_columns();
-
-		// Load options.
-		$this->options = get_option(
-			EHRI_DOI_PLUGIN_OPTION_PREFIX,
-			array(
-				'publisher'           => '',
-				'publisher_ror'       => '',
-				'publication_name'    => get_bloginfo( 'name' ),
-				'service_url'         => 'https://api.datacite.org/dois',
-				'resolver_url_prefix' => 'https://doi.org/',
-				'prefix'              => '', // Default DOI prefix.
-				'client_id'           => '',
-				'client_secret'       => '',
-			)
-		);
 	}
 
 	/**

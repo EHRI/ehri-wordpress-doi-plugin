@@ -60,6 +60,15 @@ class EHRI_DOI_Metadata_Manager {
 			$this->admin->get_client_secret()
 		);
 		$this->helpers    = new EHRI_DOI_Metadata_Helpers( $this->admin );
+	}
+
+	/**
+	 * Register WordPress hooks.
+	 *
+	 * @return void
+	 */
+	public function register(): void {
+		$this->admin->register();
 
 		// Add meta box to post edit screen.
 		add_action( 'add_meta_boxes', array( $this, 'add_doi_meta_box' ) );
