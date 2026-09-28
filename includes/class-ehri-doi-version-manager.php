@@ -19,9 +19,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class EHRI_DOI_Version_Manager {
 	/**
-	 * Constructor.
+	 * Register WordPress hooks.
+	 *
+	 * @return void
 	 */
-	public function __construct() {
+	public function register(): void {
 		// Add meta box to post edit screen.
 		add_action( 'add_meta_boxes', array( $this, 'add_doi_version_meta_box' ) );
 
