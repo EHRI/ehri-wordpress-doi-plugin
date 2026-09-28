@@ -330,11 +330,13 @@ class EHRI_DOI_Metadata_Manager {
 			'version'              => $this->helpers->get_version_info( $post_id ),
 		);
 
-		// If we have a DOI for this post already, add the URL to the data based
-		// on the service resolver URL.
+		// `url` is the DOI's resolution target: the service's own landing
+		// page if it has one, otherwise the post's permalink.
 		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
-		if ( $doi ) {
-			$data['url'] = $this->admin->get_service_url() . '/' . $doi;
+		if ( $doi && $this->admin->service_url_is_landing_page() ) {
+			$data['url'] = rtrim( $this->admin->get_service_url(), '/' ) . '/' . $doi;
+		} else {
+			$data['url'] = get_the_permalink( $post_id );
 		}
 
 		return $data;
