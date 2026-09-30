@@ -156,23 +156,7 @@ class EHRI_DOI_CLI_Command {
 	 * @return void
 	 */
 	public function update_all(): void {
-		$query = new WP_Query(
-			array(
-				'post_type'      => 'any',
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-				'meta_query'     => array(
-					array(
-						'key'     => EHRI_DOI_META_KEY,
-						'compare' => 'EXISTS',
-					),
-				),
-			)
-		);
-
-		$post_ids = $query->posts;
+		$post_ids = $this->get_posts_with_doi();
 		if ( ! $post_ids ) {
 			WP_CLI::log( 'No posts with a registered DOI found.' );
 			return;
@@ -204,5 +188,71 @@ class EHRI_DOI_CLI_Command {
 		if ( $failures ) {
 			WP_CLI::error( sprintf( '%d DOI update(s) failed.', count( $failures ) ), false );
 		}
+	}
+
+	/**
+	 * List posts that have a registered DOI.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Render output in a particular format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - csv
+	 *   - json
+	 *   - yaml
+	 *   - count
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp ehri-doi list
+	 *
+	 * @subcommand list
+	 *
+	 * @param array $args The positional arguments.
+	 * @param array $assoc_args The associative arguments.
+	 *
+	 * @return void
+	 */
+	public function list_posts( array $args, array $assoc_args ): void {
+		$rows = array();
+		foreach ( $this->get_posts_with_doi() as $post_id ) {
+			$rows[] = array(
+				'ID'        => $post_id,
+				'doi'       => get_post_meta( $post_id, EHRI_DOI_META_KEY, true ),
+				'doi_state' => get_post_meta( $post_id, EHRI_DOI_STATE_META_KEY, true ),
+			);
+		}
+
+		\WP_CLI\Utils\format_items( \WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' ), $rows, array( 'ID', 'doi', 'doi_state' ) );
+	}
+
+	/**
+	 * Get the IDs of all posts (any type/status) that have a registered DOI.
+	 *
+	 * @return int[]
+	 */
+	private function get_posts_with_doi(): array {
+		$query = new WP_Query(
+			array(
+				'post_type'      => 'any',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				'meta_query'     => array(
+					array(
+						'key'     => EHRI_DOI_META_KEY,
+						'compare' => 'EXISTS',
+					),
+				),
+			)
+		);
+
+		return $query->posts;
 	}
 }
