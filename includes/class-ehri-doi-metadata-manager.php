@@ -354,28 +354,47 @@ class EHRI_DOI_Metadata_Manager {
 		// Fetch post attributes.
 		$post_attributes = $this->initialize_doi_metadata( $post_id );
 
-		// Fetch metadata from DataCite API.
 		try {
-			$doi_data = $this->repository->get_doi_metadata( $doi );
-
-			// Calculate changes.
-			$doi_attributes = $doi_data['data']['attributes'];
-			$doi_tombstone  = $doi_data['meta']['tombstone'] ?? false;
-			$doi_state      = $doi_attributes['state'] ?? 'draft';
-			$changed_fields = $doi ? EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes ) : array();
+			$live           = $this->fetch_live_doi_attributes( $doi, $post_id );
+			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $live['attributes'], $post_attributes );
 
 			// Send data for the modal.
 			wp_send_json_success(
 				array(
-					'data'       => $doi_attributes,
-					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
+					'data'       => $live['attributes'],
+					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $live['state'], $changed_fields, $live['tombstone'] ),
 				)
 			);
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
-			// Fire error event.
-			EHRI_DOI_Events::doi_api_error( 'get', $doi, $post_id, $e->getMessage(), $e->getCode() );
 			wp_send_json_error( $e->getMessage() . ' ' . $e->getCode() );
 		}
+	}
+
+	/**
+	 * Fetch a DOI's live attributes/state/tombstone from DataCite, firing
+	 * the `doi_api_error` event on failure.
+	 *
+	 * @param string $doi The DOI.
+	 * @param int    $post_id The post ID (for event context).
+	 *
+	 * @return array{attributes: array, state: string, tombstone: array|false}
+	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
+	 */
+	private function fetch_live_doi_attributes( string $doi, int $post_id ): array {
+		try {
+			$doi_data = $this->repository->get_doi_metadata( $doi );
+		} catch ( EHRI_DOI_Repository_Exception $e ) {
+			EHRI_DOI_Events::doi_api_error( 'get', $doi, $post_id, $e->getMessage(), $e->getCode() );
+			throw $e;
+		}
+
+		$doi_attributes = $doi_data['data']['attributes'];
+
+		return array(
+			'attributes' => $doi_attributes,
+			'state'      => $doi_attributes['state'] ?? 'draft',
+			'tombstone'  => $doi_data['meta']['tombstone'] ?? false,
+		);
 	}
 
 	/**
@@ -413,11 +432,78 @@ class EHRI_DOI_Metadata_Manager {
 		}
 
 		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
-		if ( $doi ) {
-			$this->update_doi_metadata( $post_id, $doi );
-		} else {
-			$this->create_doi( $post_id );
+
+		try {
+			$result = $doi ? $this->update_doi_metadata( $post_id, $doi ) : $this->create_doi( $post_id );
+			wp_send_json_success(
+				array(
+					'message'    => $doi
+						// translators: %s is the DOI identifier.
+						? sprintf( __( 'DOI metadata updated successfully for DOI: %s', 'edmp' ), $result['doi'] )
+						// translators: %s is the DOI identifier.
+						: sprintf( __( 'DOI metadata registered successfully: DOI %s', 'edmp' ), $result['doi'] ),
+					'doi'        => $result['doi'],
+					'modal_html' => $this->get_modal_html( $post_id, $result['post_attributes'], $result['doi'], $result['state'], $result['changed_fields'], $result['tombstone'] ),
+					'panel_html' => $this->get_meta_box_html( $result['doi'], $result['state'] ),
+				)
+			);
+		} catch ( EHRI_DOI_Repository_Exception $e ) {
+			wp_send_json_error(
+				$doi
+					? sprintf( 'Error updating DOI metadata [status: %s]', $e->getCode() )
+					: $e->getMessage() . ' ' . $e->getCode()
+			);
 		}
+	}
+
+	/**
+	 * Create a new DOI for the post, or update its metadata if one already
+	 * exists. Used by both the AJAX handler and WP-CLI commands.
+	 *
+	 * @param int $post_id The post ID.
+	 *
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
+	 */
+	public function create_or_update_doi( int $post_id ): array {
+		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
+		return $doi ? $this->update_doi_metadata( $post_id, $doi ) : $this->create_doi( $post_id );
+	}
+
+	/**
+	 * Get information about the DOI registered for a post, including
+	 * whether its DataCite metadata is out of date relative to the post.
+	 *
+	 * @param int $post_id The post ID.
+	 *
+	 * @return array{doi: string|null, state: string|null, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
+	 */
+	public function get_doi_info( int $post_id ): array {
+		$doi             = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
+		$post_attributes = $this->initialize_doi_metadata( $post_id );
+
+		if ( ! $doi ) {
+			return array(
+				'doi'             => null,
+				'state'           => null,
+				'attributes'      => array(),
+				'post_attributes' => $post_attributes,
+				'tombstone'       => false,
+				'changed_fields'  => array(),
+			);
+		}
+
+		$live = $this->fetch_live_doi_attributes( $doi, $post_id );
+
+		return array(
+			'doi'             => $doi,
+			'state'           => $live['state'],
+			'attributes'      => $live['attributes'],
+			'post_attributes' => $post_attributes,
+			'tombstone'       => $live['tombstone'],
+			'changed_fields'  => EHRI_DOI_Metadata_Helpers::changed_fields( $live['attributes'], $post_attributes ),
+		);
 	}
 
 	/**
@@ -425,9 +511,10 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param int $post_id The post ID.
 	 *
-	 * @return void
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
 	 */
-	private function create_doi( int $post_id ): void {
+	private function create_doi( int $post_id ): array {
 
 		// Fetch the attributes from the form POST data.
 		$post_attributes = $this->initialize_doi_metadata( $post_id );
@@ -474,21 +561,13 @@ class EHRI_DOI_Metadata_Manager {
 			EHRI_DOI_Events::doi_created( $doi, $post_id, $doi_attributes, $doi_state );
 			EHRI_DOI_Events::after_doi_operation( 'create', $doi, $post_id, true, $doi_attributes );
 
-			wp_send_json_success(
-				array(
-					// translators: %s is the DOI identifier.
-					'message'    => sprintf( __( 'DOI metadata registered successfully: DOI %s', 'edmp' ), $doi ),
-					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
-					'panel_html' => $this->get_meta_box_html( $doi, $doi_state ),
-				)
-			);
+			return $this->build_doi_result( $doi, $doi_state, $doi_attributes, $post_attributes, $doi_tombstone, $changed_fields );
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
 			// Fire error events.
 			EHRI_DOI_Events::doi_api_error( 'create', '', $post_id, $e->getMessage(), $e->getCode() );
 			EHRI_DOI_Events::after_doi_operation( 'create', '', $post_id, false, array( 'error' => $e->getMessage() ) );
 
-			wp_send_json_error( $e->getMessage() . ' ' . $e->getCode() );
+			throw $e;
 		}
 	}
 
@@ -498,9 +577,10 @@ class EHRI_DOI_Metadata_Manager {
 	 * @param int    $post_id The post ID.
 	 * @param string $doi The DOI.
 	 *
-	 * @return void
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
 	 */
-	private function update_doi_metadata( int $post_id, string $doi ): void {
+	private function update_doi_metadata( int $post_id, string $doi ): array {
 		$post_attributes = $this->initialize_doi_metadata( $post_id );
 
 		// Fire before operation event.
@@ -545,22 +625,37 @@ class EHRI_DOI_Metadata_Manager {
 			// Recalculate the changed fields with the updated data (there should be no changes, unless there's a bug).
 			$changed_fields = EHRI_DOI_Metadata_Helpers::changed_fields( $doi_attributes, $post_attributes );
 
-			wp_send_json_success(
-				array(
-					// translators: %s is the DOI identifier.
-					'message'    => sprintf( __( 'DOI metadata updated successfully for DOI: %s', 'edmp' ), $doi ),
-					'doi'        => $doi,
-					'modal_html' => $this->get_modal_html( $post_id, $post_attributes, $doi, $doi_state, $changed_fields, $doi_tombstone ),
-					'panel_html' => $this->get_meta_box_html( $doi, $doi_state ?? 'draft' ),
-				)
-			);
+			return $this->build_doi_result( $doi, $doi_state, $doi_attributes, $post_attributes, $doi_tombstone, $changed_fields );
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
 			// Fire error events.
 			EHRI_DOI_Events::doi_api_error( 'update', $doi, $post_id, $e->getMessage(), $e->getCode() );
 			EHRI_DOI_Events::after_doi_operation( 'update', $doi, $post_id, false, array( 'error' => $e->getMessage() ) );
 
-			wp_send_json_error( sprintf( 'Error updating DOI metadata [status: %s]', $e->getCode() ) );
+			throw $e;
 		}
+	}
+
+	/**
+	 * Build the result array shared by create_doi() and update_doi_metadata().
+	 *
+	 * @param string      $doi The DOI.
+	 * @param string      $state The DOI state.
+	 * @param array       $attributes The DOI attributes from DataCite.
+	 * @param array       $post_attributes The post-derived attributes.
+	 * @param array|false $tombstone The tombstone info, if any.
+	 * @param array       $changed_fields Fields that differ between $attributes and $post_attributes.
+	 *
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 */
+	private function build_doi_result( string $doi, string $state, array $attributes, array $post_attributes, $tombstone, array $changed_fields ): array {
+		return array(
+			'doi'             => $doi,
+			'state'           => $state,
+			'attributes'      => $attributes,
+			'post_attributes' => $post_attributes,
+			'tombstone'       => $tombstone,
+			'changed_fields'  => $changed_fields,
+		);
 	}
 
 	/**

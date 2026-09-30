@@ -117,3 +117,9 @@ register_activation_hook(
 		$doi_version_manager->activate();
 	}
 );
+
+// Register WP-CLI commands.
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-cli-command.php';
+	WP_CLI::add_command( 'ehri-doi', new EHRI_DOI_CLI_Command( $doi_metadata_manager ) );
+}
