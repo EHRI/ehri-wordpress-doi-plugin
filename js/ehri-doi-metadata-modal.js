@@ -18,11 +18,17 @@
 						autoOpen: true,
 						closeOnEscape: true,
 						width: 800,
+						maxHeight: $( window ).height() - 40,
 						modal: true,
 						buttons: {
 							[doiMetadata.strings.close]: function () {
 								$( this ).dialog( 'close' );
 							}
+						},
+						open: function () {
+							// Avoid focusing the URL link, which scrolls the list down.
+							$( this ).find( '.button-row button:enabled' ).first().trigger( 'focus' );
+							$( this ).find( '.doi-metadata' ).scrollTop( 0 );
 						},
 						close: function () {
 							// Remove the modal when closed.

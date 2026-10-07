@@ -31,7 +31,31 @@
 .button-row {
 	display: flex;
 	gap: .5rem;
-	margin-top: 15px;
+	padding-top: 15px;
+	border-top: 1px solid #ddd;
+}
+
+/* Only the metadata list scrolls, keeping the buttons in view. */
+#doi-metadata-modal {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+#doi-metadata-form {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+#doi-metadata-form .doi-metadata {
+	flex-shrink: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+#doi-metadata-form > :not(.doi-metadata) {
+	flex-shrink: 0;
 }
 
 /* Meta box styling */
@@ -55,7 +79,7 @@
 	border-collapse: collapse;
 	display: grid;
 	grid-template-columns: 1fr 2fr 1fr;
-	gap: 0.5rem;
+	gap: 0 0.5rem;
 }
 
 /** Responsive fixes for the metadata table at narrow widths */
@@ -89,9 +113,17 @@
 	margin: 0;
 }
 
+.doi-metadata .doi-metadata-section > div li {
+	margin-bottom: 0.125rem;
+}
+
 .doi-metadata .doi-metadata-section > div {
-	padding: 0.5rem 0;
+	padding: 0.25rem 0;
 	border-bottom: 1px solid #ddd;
+}
+
+.doi-metadata .doi-metadata-section:last-child > div {
+	border-bottom: none;
 }
 
 .doi-metadata .doi-metadata-section > div:first-child {
