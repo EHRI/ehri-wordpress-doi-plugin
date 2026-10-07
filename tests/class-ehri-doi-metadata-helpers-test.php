@@ -93,4 +93,51 @@ EOT;
 		);
 		$this->assertEmpty( EHRI_DOI_Metadata_Helpers::extract_item_data_arks( 'No shortcodes here.' ) );
 	}
+
+	/**
+	 * Test replacing the IDs of ehri-item-data shortcodes in post content.
+	 *
+	 * @return void
+	 */
+	public function test_replace_item_data_ids() {
+		$content = <<<'EOT'
+<p>[ehri-item-data id="us-005578"] and [ehri-item-data field="title" id='us-005578' lang="en"]</p>
+[ehri-item-data id=de-002409]
+[ehri-item-data id="ark:41045/p0existing"]
+[ehri-item-data id="unknown"]
+[ehri-item-data-other id="us-005578"]
+[ehri-item-data data-id="us-005578"]
+EOT;
+
+		$expected = <<<'EOT'
+<p>[ehri-item-data id="ark:41045/p0a"] and [ehri-item-data field="title" id='ark:41045/p0a' lang="en"]</p>
+[ehri-item-data id=ark:41045/p0b]
+[ehri-item-data id="ark:41045/p0existing"]
+[ehri-item-data id="unknown"]
+[ehri-item-data-other id="us-005578"]
+[ehri-item-data data-id="us-005578"]
+EOT;
+
+		$map  = array(
+			'us-005578' => 'ark:41045/p0a',
+			'de-002409' => 'ark:41045/p0b',
+		);
+		$seen = array();
+
+		$this->assertEquals(
+			$expected,
+			EHRI_DOI_Metadata_Helpers::replace_item_data_ids(
+				$content,
+				function ( $id ) use ( $map, &$seen ) {
+					$seen[] = $id;
+					return $map[ $id ] ?? $id;
+				}
+			)
+		);
+		$this->assertEquals(
+			array( 'us-005578', 'us-005578', 'de-002409', 'ark:41045/p0existing', 'unknown' ),
+			$seen,
+			'Only ehri-item-data id attributes should be passed to the callback.'
+		);
+	}
 }

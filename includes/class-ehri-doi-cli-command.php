@@ -269,6 +269,165 @@ class EHRI_DOI_CLI_Command {
 	}
 
 	/**
+	 * Replace portal item IDs in `ehri-item-data` shortcodes with their ARKs,
+	 * looked up via the EHRI portal API. IDs whose ARK can't be found are
+	 * left unchanged. Updated posts get a new revision.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<post_id>...]
+	 * : The posts to convert. Defaults to all posts using the shortcode.
+	 *
+	 * [--dry-run]
+	 * : Report what would be converted without changing any posts.
+	 *
+	 * [--portal-url=<url>]
+	 * : The base URL of the EHRI portal.
+	 * ---
+	 * default: https://portal.ehri-project.eu
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp ehri-doi convert-arks --dry-run
+	 *     wp ehri-doi convert-arks 42
+	 *
+	 * @subcommand convert-arks
+	 *
+	 * @param array $args The positional arguments.
+	 * @param array $assoc_args The associative arguments.
+	 *
+	 * @return void
+	 */
+	public function convert_arks( array $args, array $assoc_args ): void {
+		if ( ! shortcode_exists( EHRI_DOI_Metadata_Helpers::ITEM_DATA_SHORTCODE ) ) {
+			WP_CLI::error( 'The EHRI Portal Shortcode Plugin is not active.' );
+		}
+
+		$dry_run    = \WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
+		$portal_url = untrailingslashit( \WP_CLI\Utils\get_flag_value( $assoc_args, 'portal-url', 'https://portal.ehri-project.eu' ) );
+		$post_ids   = $args ? array_map( 'intval', $args ) : $this->get_posts_with_item_data();
+
+		// Without a user who has `unfiltered_html`, saving would strip markup from the content.
+		kses_remove_filters();
+
+		$arks    = array();
+		$rows    = array();
+		$updated = 0;
+		foreach ( $post_ids as $post_id ) {
+			$post = get_post( $post_id );
+			if ( ! $post ) {
+				WP_CLI::warning( sprintf( 'No post found with ID %d.', $post_id ) );
+				continue;
+			}
+
+			$post_rows = array();
+			$content   = EHRI_DOI_Metadata_Helpers::replace_item_data_ids(
+				$post->post_content,
+				function ( string $id ) use ( $post_id, $portal_url, &$arks, &$post_rows ): string {
+					if ( 0 === strpos( $id, 'ark:' ) ) {
+						return $id;
+					}
+					if ( ! array_key_exists( $id, $arks ) ) {
+						$arks[ $id ] = $this->lookup_ark( $portal_url, $id );
+					}
+					$ark         = $arks[ $id ];
+					$found       = ! is_wp_error( $ark );
+					$post_rows[] = array(
+						'post_id' => $post_id,
+						'id'      => $id,
+						'ark'     => $found ? $ark : '',
+						'status'  => $found ? 'ok' : 'failed: ' . $ark->get_error_message(),
+					);
+					return $found ? $ark : $id;
+				}
+			);
+
+			if ( $content !== $post->post_content ) {
+				$status = $dry_run ? 'would convert' : 'converted';
+				if ( ! $dry_run ) {
+					$result = wp_update_post(
+						wp_slash(
+							array(
+								'ID'           => $post_id,
+								'post_content' => $content,
+							)
+						),
+						true
+					);
+					if ( is_wp_error( $result ) ) {
+						$status = 'failed: ' . $result->get_error_message();
+					} else {
+						$updated++;
+					}
+				}
+				foreach ( $post_rows as $i => $row ) {
+					if ( 'ok' === $row['status'] ) {
+						$post_rows[ $i ]['status'] = $status;
+					}
+				}
+			}
+			$rows = array_merge( $rows, $post_rows );
+		}
+
+		if ( ! $rows ) {
+			WP_CLI::log( 'No item IDs found to convert.' );
+			return;
+		}
+
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'post_id', 'id', 'ark', 'status' ) );
+
+		if ( $dry_run ) {
+			WP_CLI::log( 'Dry run: no posts were changed.' );
+		} elseif ( $updated ) {
+			WP_CLI::success( sprintf( 'Updated %d post(s). Run `wp ehri-doi update-all` to refresh their DOI metadata.', $updated ) );
+		}
+	}
+
+	/**
+	 * Look up the ARK for a portal item ID via the EHRI portal API.
+	 *
+	 * @param string $portal_url The portal base URL.
+	 * @param string $id The item ID.
+	 *
+	 * @return string|WP_Error the ARK, e.g. `ark:41045/p0abc123`, or an error.
+	 */
+	private function lookup_ark( string $portal_url, string $id ) {
+		$response = wp_remote_get( $portal_url . '/api/v1/' . rawurlencode( $id ), array( 'timeout' => 20 ) );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $code ) {
+			return new WP_Error( 'ehri_doi_portal_http', sprintf( 'HTTP %d', $code ) );
+		}
+
+		// The portal gives a resolver URL, e.g. https://n2t.net/ark:41045/p0abc123.
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		$url  = $data['data']['meta']['ark'] ?? '';
+		$pos  = strpos( $url, 'ark:' );
+		if ( false === $pos ) {
+			return new WP_Error( 'ehri_doi_no_ark', 'no ARK in portal response' );
+		}
+		return substr( $url, $pos );
+	}
+
+	/**
+	 * Get the IDs of all posts (excluding revisions) that use the
+	 * `ehri-item-data` shortcode.
+	 *
+	 * @return int[]
+	 */
+	private function get_posts_with_item_data(): array {
+		global $wpdb;
+		$like = '%' . $wpdb->esc_like( '[' . EHRI_DOI_Metadata_Helpers::ITEM_DATA_SHORTCODE ) . '%';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type != 'revision' AND post_content LIKE %s ORDER BY ID", $like ) );
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Get the IDs of all posts (any type/status) that have a registered DOI.
 	 *
 	 * @return int[]

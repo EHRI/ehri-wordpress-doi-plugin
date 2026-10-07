@@ -18,6 +18,20 @@ class EHRI_DOI_Metadata_Helpers {
 	const ITEM_DATA_SHORTCODE = 'ehri-item-data';
 
 	/**
+	 * Matches an `ehri-item-data` opening tag, capturing its attributes.
+	 *
+	 * @var string
+	 */
+	private const ITEM_DATA_PATTERN = '/\[' . self::ITEM_DATA_SHORTCODE . '(?=[\s\]\/])([^\]]*)\]/';
+
+	/**
+	 * Matches a double-quoted, single-quoted or unquoted `id` attribute.
+	 *
+	 * @var string
+	 */
+	private const ID_ATTR_PATTERN = '/(?:^|\s)id\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'\]]+))/';
+
+	/**
 	 * Admin panel data helpers.
 	 *
 	 * @var EHRI_DOI_Metadata_Admin
@@ -232,19 +246,50 @@ class EHRI_DOI_Metadata_Helpers {
 	 */
 	public static function extract_item_data_arks( string $content ): array {
 		$arks = array();
-		$tag  = preg_quote( self::ITEM_DATA_SHORTCODE, '/' );
-		if ( ! preg_match_all( '/\[' . $tag . '(?=[\s\]\/])([^\]]*)\]/', $content, $shortcodes ) ) {
-			return $arks;
-		}
-		foreach ( $shortcodes[1] as $atts ) {
-			if ( preg_match( '/(?:^|\s)id\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'\]]+))/', $atts, $m ) ) {
-				$id = trim( implode( '', array_slice( $m, 1 ) ) );
+		self::replace_item_data_ids(
+			$content,
+			function ( string $id ) use ( &$arks ): string {
 				if ( 0 === strpos( $id, 'ark:' ) && ! in_array( $id, $arks, true ) ) {
 					$arks[] = $id;
 				}
+				return $id;
 			}
-		}
+		);
 		return $arks;
+	}
+
+	/**
+	 * Replace the `id` attribute of each `ehri-item-data` shortcode in the
+	 * given content with the result of calling `$replace` on it. Quoting and
+	 * other attributes are preserved.
+	 *
+	 * @param string   $content the post content.
+	 * @param callable $replace given an item ID, returns its replacement.
+	 * @return string the updated content.
+	 */
+	public static function replace_item_data_ids( string $content, callable $replace ): string {
+		return preg_replace_callback(
+			self::ITEM_DATA_PATTERN,
+			function ( array $tag ) use ( $replace ): string {
+				$atts = $tag[1];
+				if ( ! preg_match( self::ID_ATTR_PATTERN, $atts, $m, PREG_OFFSET_CAPTURE ) ) {
+					return $tag[0];
+				}
+				// The value is in whichever quoted/unquoted group matched.
+				foreach ( array_slice( $m, 1 ) as list( $value, $offset ) ) {
+					if ( -1 !== $offset ) {
+						break;
+					}
+				}
+				$id  = trim( $value );
+				$new = $replace( $id );
+				if ( $new === $id ) {
+					return $tag[0];
+				}
+				return '[' . self::ITEM_DATA_SHORTCODE . substr_replace( $atts, $new, $offset, strlen( $value ) ) . ']';
+			},
+			$content
+		);
 	}
 
 	/**
