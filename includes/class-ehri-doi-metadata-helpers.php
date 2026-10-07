@@ -411,6 +411,17 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Determine whether a DOI in the given state resolves publicly, i.e.
+	 * is not a draft.
+	 *
+	 * @param string $state the DOI state.
+	 * @return bool
+	 */
+	public static function is_doi_public( string $state ): bool {
+		return 'findable' === $state || 'registered' === $state;
+	}
+
+	/**
 	 * Returns an array of date objects for
 	 * publication and modification.
 	 *
