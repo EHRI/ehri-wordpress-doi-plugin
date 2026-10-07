@@ -42,6 +42,9 @@ require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-citation-widget.php'
 // Include DOI URL widget.
 require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-url-widget.php';
 
+// Include feed support.
+require_once EHRI_DOI_PLUGIN_DIR . 'includes/class-ehri-doi-feed.php';
+
 // If in DEBUG mode, print the events on the log.
 // phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log
 if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) || EHRI_DOI_PLUGIN_DEBUG ) {
@@ -104,9 +107,11 @@ if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG ) || EHRI_DOI_PLUGIN_DEBUG ) {
 // Instantiate the plugin classes and wire them into WordPress.
 $doi_metadata_manager = new EHRI_DOI_Metadata_Manager();
 $doi_version_manager  = new EHRI_DOI_Version_Manager();
+$doi_feed             = new EHRI_DOI_Feed();
 
 $doi_metadata_manager->register();
 $doi_version_manager->register();
+$doi_feed->register();
 
 // Run activation logic only once, when the plugin is actually activated
 // (as opposed to on every page load).

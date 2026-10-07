@@ -81,19 +81,9 @@ class EHRI_DOI_Url_Widget extends WP_Widget {
 			return;
 		}
 
-		if ( is_user_logged_in() || $this->doi_visible( $state ) ) {
+		if ( is_user_logged_in() || EHRI_DOI_Metadata_Helpers::is_doi_public( (string) $state ) ) {
 			$this->render_doi_url( $doi, $state, $args );
 		}
-	}
-
-	/**
-	 * Check if the DOI is visible.
-	 *
-	 * @param string $state The DOI state.
-	 * @return bool True if the DOI is visible, false otherwise.
-	 */
-	private function doi_visible( string $state ): bool {
-		return 'findable' === $state || 'registered' === $state;
 	}
 
 	/**
