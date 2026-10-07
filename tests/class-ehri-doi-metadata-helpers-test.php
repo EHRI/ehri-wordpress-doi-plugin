@@ -70,4 +70,27 @@ class EHRI_DOI_Metadata_Helpers_Test extends TestCase {
 			'The data should be the same after changing the alternate identifier back.'
 		);
 	}
+
+	/**
+	 * Test extracting ARKs from ehri-item-data shortcodes in post content.
+	 *
+	 * @return void
+	 */
+	public function test_extract_item_data_arks() {
+		$content = <<<'EOT'
+<p>Some text [ehri-item-data id="ark:41045/p0ncv894nf94n"] and more.</p>
+[ehri-item-data id='us-005578'][/ehri-item-data]
+[ehri-item-data field="title" id=ark:41045/abc123]
+[ehri-item-data id="ark:41045/p0ncv894nf94n" field="scope"]
+[ehri-item-data-other id="ark:41045/ignored"]
+[other id="ark:41045/ignored2"]
+[ehri-item-data data-id="ark:41045/ignored3"]
+EOT;
+
+		$this->assertEquals(
+			array( 'ark:41045/p0ncv894nf94n', 'ark:41045/abc123' ),
+			EHRI_DOI_Metadata_Helpers::extract_item_data_arks( $content )
+		);
+		$this->assertEmpty( EHRI_DOI_Metadata_Helpers::extract_item_data_arks( 'No shortcodes here.' ) );
+	}
 }

@@ -10,6 +10,14 @@
  */
 class EHRI_DOI_Metadata_Helpers {
 	/**
+	 * The shortcode provided by the EHRI Portal Shortcode Plugin
+	 * for embedding portal item data.
+	 *
+	 * @var string
+	 */
+	const ITEM_DATA_SHORTCODE = 'ehri-item-data';
+
+	/**
 	 * Admin panel data helpers.
 	 *
 	 * @var EHRI_DOI_Metadata_Admin
@@ -187,6 +195,59 @@ class EHRI_DOI_Metadata_Helpers {
 	}
 
 	/**
+	 * Fetch ARKs of EHRI portal items referenced in the post content via
+	 * the `ehri-item-data` shortcode. This only applies if the EHRI Portal
+	 * Shortcode Plugin is active (i.e. the shortcode is registered.)
+	 *
+	 * @param int $post_id the post ID.
+	 * @return array an array of related identifier arrays.
+	 */
+	public function get_related_arks( int $post_id ): array {
+		if ( ! shortcode_exists( self::ITEM_DATA_SHORTCODE ) ) {
+			return array();
+		}
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return array();
+		}
+		return array_map(
+			function ( $ark ) {
+				return array(
+					'relatedIdentifier'     => $ark,
+					'relatedIdentifierType' => 'ARK',
+					'relationType'          => 'References',
+				);
+			},
+			self::extract_item_data_arks( $post->post_content )
+		);
+	}
+
+	/**
+	 * Extract unique ARK identifiers from the `id` attribute of
+	 * `ehri-item-data` shortcodes in the given content. IDs which
+	 * are not ARKs (i.e. do not start with `ark:`) are ignored.
+	 *
+	 * @param string $content the post content.
+	 * @return array an array of ARK strings.
+	 */
+	public static function extract_item_data_arks( string $content ): array {
+		$arks = array();
+		$tag  = preg_quote( self::ITEM_DATA_SHORTCODE, '/' );
+		if ( ! preg_match_all( '/\[' . $tag . '(?=[\s\]\/])([^\]]*)\]/', $content, $shortcodes ) ) {
+			return $arks;
+		}
+		foreach ( $shortcodes[1] as $atts ) {
+			if ( preg_match( '/(?:^|\s)id\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'\]]+))/', $atts, $m ) ) {
+				$id = trim( implode( '', array_slice( $m, 1 ) ) );
+				if ( 0 === strpos( $id, 'ark:' ) && ! in_array( $id, $arks, true ) ) {
+					$arks[] = $id;
+				}
+			}
+		}
+		return $arks;
+	}
+
+	/**
 	 * Fetch related identifiers for the post.
 	 *
 	 * @param int $post_id the post ID.
@@ -197,6 +258,7 @@ class EHRI_DOI_Metadata_Helpers {
 			$this->get_related_translations( $post_id ),
 			$this->get_related_versions( $post_id ),
 			$this->get_related_urls( $post_id ),
+			$this->get_related_arks( $post_id ),
 		);
 	}
 
