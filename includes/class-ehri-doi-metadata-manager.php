@@ -460,14 +460,15 @@ class EHRI_DOI_Metadata_Manager {
 	 * Create a new DOI for the post, or update its metadata if one already
 	 * exists. Used by both the AJAX handler and WP-CLI commands.
 	 *
-	 * @param int $post_id The post ID.
+	 * @param int  $post_id The post ID.
+	 * @param bool $skip_unchanged If true, don't update a DOI whose metadata is already up to date.
 	 *
-	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array, updated: bool}
 	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
 	 */
-	public function create_or_update_doi( int $post_id ): array {
+	public function create_or_update_doi( int $post_id, bool $skip_unchanged = false ): array {
 		$doi = get_post_meta( $post_id, EHRI_DOI_META_KEY, true );
-		return $doi ? $this->update_doi_metadata( $post_id, $doi ) : $this->create_doi( $post_id );
+		return $doi ? $this->update_doi_metadata( $post_id, $doi, $skip_unchanged ) : $this->create_doi( $post_id );
 	}
 
 	/**
@@ -511,7 +512,7 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param int $post_id The post ID.
 	 *
-	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array, updated: bool}
 	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
 	 */
 	private function create_doi( int $post_id ): array {
@@ -576,15 +577,13 @@ class EHRI_DOI_Metadata_Manager {
 	 *
 	 * @param int    $post_id The post ID.
 	 * @param string $doi The DOI.
+	 * @param bool   $skip_unchanged If true, don't update if the existing metadata is already up to date.
 	 *
-	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array, updated: bool}
 	 * @throws EHRI_DOI_Repository_Exception If the DataCite API call fails.
 	 */
-	private function update_doi_metadata( int $post_id, string $doi ): array {
+	private function update_doi_metadata( int $post_id, string $doi, bool $skip_unchanged = false ): array {
 		$post_attributes = $this->initialize_doi_metadata( $post_id );
-
-		// Fire before operation event.
-		EHRI_DOI_Events::before_doi_operation( 'update', $doi, $post_id, array( 'metadata' => $post_attributes ) );
 
 		// Get existing metadata for comparison.
 		try {
@@ -593,8 +592,16 @@ class EHRI_DOI_Metadata_Manager {
 		} catch ( EHRI_DOI_Repository_Exception $e ) {
 			// Continue with update even if we can't get old metadata.
 			EHRI_DOI_Events::doi_api_error( 'get', $doi, $post_id, $e->getMessage(), $e->getCode() );
+			$existing_data  = array();
 			$old_attributes = array();
 		}
+
+		if ( $skip_unchanged && $old_attributes && empty( EHRI_DOI_Metadata_Helpers::changed_fields( $old_attributes, $post_attributes ) ) ) {
+			return $this->build_doi_result( $doi, $old_attributes['state'] ?? 'draft', $old_attributes, $post_attributes, $existing_data['meta']['tombstone'] ?? false, array(), false );
+		}
+
+		// Fire before operation event.
+		EHRI_DOI_Events::before_doi_operation( 'update', $doi, $post_id, array( 'metadata' => $post_attributes ) );
 
 		// Prepare the metadata payload.
 		$payload = array(
@@ -644,10 +651,11 @@ class EHRI_DOI_Metadata_Manager {
 	 * @param array       $post_attributes The post-derived attributes.
 	 * @param array|false $tombstone The tombstone info, if any.
 	 * @param array       $changed_fields Fields that differ between $attributes and $post_attributes.
+	 * @param bool        $updated Whether the DOI was actually created or updated.
 	 *
-	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array}
+	 * @return array{doi: string, state: string, attributes: array, post_attributes: array, tombstone: array|false, changed_fields: array, updated: bool}
 	 */
-	private function build_doi_result( string $doi, string $state, array $attributes, array $post_attributes, $tombstone, array $changed_fields ): array {
+	private function build_doi_result( string $doi, string $state, array $attributes, array $post_attributes, $tombstone, array $changed_fields, bool $updated = true ): array {
 		return array(
 			'doi'             => $doi,
 			'state'           => $state,
@@ -655,6 +663,7 @@ class EHRI_DOI_Metadata_Manager {
 			'post_attributes' => $post_attributes,
 			'tombstone'       => $tombstone,
 			'changed_fields'  => $changed_fields,
+			'updated'         => $updated,
 		);
 	}
 
